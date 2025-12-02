@@ -16,26 +16,56 @@ export default function ProfileScreen() {
 
       const userId = authData.user.id;
 
+      // Load base profile
       const { data: profileData } = await supabase
         .from("profiles")
         .select("*")
         .eq("id", userId)
         .single();
 
+      // Load role
       const { data: roleData } = await supabase
         .from("user_roles")
         .select("role")
         .eq("user_id", userId)
         .single();
 
-      if (profileData) setProfile(profileData);
+      // Load birthday from employees table
+      const { data: employeeData } = await supabase
+        .from("employees")
+        .select("birthday")
+        .eq("employee_id", profileData.employee_id)
+        .single();
+
+      setProfile({
+        ...profileData,
+        birthday: employeeData?.birthday ?? null,
+      });
+
       if (roleData) setRole(roleData.role);
+
     } catch (err) {
       console.log("Profile load error:", err);
     } finally {
       setLoading(false);
     }
   }
+
+  function formatBirthday(dateString?: string | null) {
+    if (!dateString) return "Not provided";
+
+    const date = new Date(dateString);
+    const day = String(date.getDate()).padStart(2, "0");
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const year = date.getFullYear();
+
+    return date.toLocaleDateString("en", {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+    });
+  }
+
 
   useEffect(() => {
     loadProfile();
@@ -73,10 +103,7 @@ export default function ProfileScreen() {
         </Text>
 
         <Text style={styles.label}>
-          Birthday:{" "}
-          <Text style={styles.value}>
-            {profile.birthday || "Not provided"}
-          </Text>
+          Birthday: <Text style={styles.value}>{formatBirthday(profile.birthday)}</Text> 
         </Text>
 
         <Text style={styles.label}>

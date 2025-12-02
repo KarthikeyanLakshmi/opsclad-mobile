@@ -91,7 +91,6 @@ export default function HomeScreen() {
     loadCalendarData();
   }, []);
 
-  // 🔥 BUILD MARKERS WITH MAX 3 DOT LIMIT
   useEffect(() => {
     const marks: any = {};
     const currentYear = new Date().getFullYear();
@@ -306,12 +305,17 @@ const styles = StyleSheet.create({
     paddingTop: 55,
     paddingBottom: 15,
     paddingHorizontal: 20,
+    alignItems: "center",
+    justifyContent: "center",
+
   },
   simpleHeaderTitle: {
     fontSize: 26,
     fontWeight: "700",
     color: "#0F172A",
+    textAlign: "center",
   },
+
   calendarCard: {
     marginTop: 10,
     marginHorizontal: 15,

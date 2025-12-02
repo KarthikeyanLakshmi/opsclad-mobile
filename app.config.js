@@ -1,7 +1,7 @@
-import "dotenv/config";
 
 export default {
   expo: {
+    "owner": "klakshminarayanan",
     name: "opsclad-mobile",
     slug: "opsclad-mobile",
     version: "1.0.0",
@@ -10,6 +10,7 @@ export default {
     scheme: "opscladmobile",
     userInterfaceStyle: "automatic",
     newArchEnabled: true,
+    platforms: ["android", "ios"],
 
     ios: {
       supportsTablet: true
@@ -23,7 +24,8 @@ export default {
         monochromeImage: "./assets/images/android-icon-monochrome.png"
       },
       edgeToEdgeEnabled: true,
-      predictiveBackGestureEnabled: false
+      predictiveBackGestureEnabled: false,
+      package: "com.klakshminarayanan.opscladmobile"
     },
 
     web: {
@@ -50,7 +52,11 @@ export default {
     extra: {
       supabaseUrl: process.env.EXPO_PUBLIC_SUPABASE_URL,
       supabaseAnonKey: process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY,
-      apiBaseUrl: process.env.API_BASE_URL
+      apiBaseUrl: process.env.API_BASE_URL,
+
+      eas: {
+        "projectId": "dd077a3b-dab8-4af2-be95-f629afb8c6aa"
+      }
     },
 
     experiments: {

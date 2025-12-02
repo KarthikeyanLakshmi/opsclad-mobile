@@ -100,15 +100,23 @@ export default function TabsLayout() {
 
         {/* Profile */}
         <View style={styles.drawerProfile}>
-          <Text style={styles.profileName}>
-            {profile?.username ?? "User"}
-          </Text>
-          <Text style={styles.profileRole}>
-            {profile?.role ?? "Role"}
-          </Text>
+          <View style={styles.profileRow}>
+            <Ionicons name="person-circle-outline" size={48} color="#fff" />
+
+            <View style={{ marginLeft: 12 }}>
+              <Text style={styles.profileName}>
+                {profile?.username ?? "User"}
+              </Text>
+              <View style={styles.roleRow}>
+                <Ionicons name="briefcase-outline" size={16} color="#cbd5e1" />
+                <Text style={styles.profileRole}>
+                  {profile?.role ?? "Role"}
+                </Text>
+              </View>
+            </View>
+          </View>
         </View>
 
-        {/* Menu Links */}
         <TouchableOpacity
           style={styles.drawerItem}
           onPress={() => {
@@ -116,7 +124,10 @@ export default function TabsLayout() {
             router.push("/leave-tracker");
           }}
         >
-          <Text style={styles.drawerItemText}>Leave Tracker</Text>
+          <View style={styles.drawerRow}>
+            <Ionicons name="calendar-outline" size={22} color="#fff" />
+            <Text style={styles.drawerItemText}>Leave Tracker</Text>
+          </View>
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -126,7 +137,10 @@ export default function TabsLayout() {
             router.push("/skills-tracker");
           }}
         >
-          <Text style={styles.drawerItemText}>Skills Tracker</Text>
+          <View style={styles.drawerRow}>
+            <Ionicons name="star-outline" size={22} color="#fff" />
+            <Text style={styles.drawerItemText}>Skills Tracker</Text>
+          </View>
         </TouchableOpacity>
 
         {/* Logout */}
@@ -194,7 +208,7 @@ export default function TabsLayout() {
         />
 
         <Tabs.Screen
-          name="task-tracker"
+          name="task"
           options={{
             tabBarLabel: "",
             tabBarIcon: ({ color }) => (
@@ -203,8 +217,9 @@ export default function TabsLayout() {
           }}
         />
 
+
         <Tabs.Screen
-          name="timesheet-tracker"
+          name="timesheet"
           options={{
             tabBarLabel: "",
             tabBarIcon: ({ color }) => (
@@ -288,5 +303,21 @@ const styles = StyleSheet.create({
     textAlign: "center",
     fontSize: 16,
     fontWeight: "700",
+  },
+  drawerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  profileRow: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+
+  roleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 2,
+    gap: 6,
   },
 });
