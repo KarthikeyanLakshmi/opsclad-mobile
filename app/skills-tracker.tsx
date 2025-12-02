@@ -1,0 +1,529 @@
+import React, { useEffect, useState } from "react";
+import { useRouter } from "expo-router";
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+  TextInput,
+  Modal,
+  ActivityIndicator,
+  Alert,
+} from "react-native";
+import { supabase } from "@/src/lib/supabase";
+import { FontAwesome , Feather } from "@expo/vector-icons";
+
+export default function EmployeeSkillTracker() {
+  const [employeeSkills, setEmployeeSkills] = useState<any[]>([]);
+  const [userProfile, setUserProfile] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [isAddSkillOpen, setIsAddSkillOpen] = useState(false);
+  const [processingSkills, setProcessingSkills] = useState(new Set<string>());
+
+  const [skillFormData, setSkillFormData] = useState({
+    skill_name: "",
+    skill_category: "",
+    skill_description: "",
+    proficiency_level: 1,
+    years_experience: 0,
+    notes: "",
+    last_used: "",
+  });
+  const router = useRouter();
+
+
+  // ------------------- LOAD PROFILE -------------------
+  const loadUserProfile = async () => {
+    try {
+      const { data: userData } = await supabase.auth.getUser();
+      if (!userData?.user) return;
+
+      const { data: profileData } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", userData.user.id)
+        .single();
+
+      setUserProfile(profileData);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  // ------------------- LOAD SKILLS -------------------
+  const loadEmployeeSkills = async () => {
+    try {
+      const { data: userData } = await supabase.auth.getUser();
+      if (!userData?.user) return;
+
+      const { data } = await supabase
+        .from("employee_skills_detailed_view")
+        .select("*")
+        .eq("employee_id", userData.user.id)
+        .order("skill_category", { ascending: true })
+        .order("skill_name", { ascending: true });
+
+      setEmployeeSkills(data || []);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  // ------------------- ADD SKILL -------------------
+  const addSkillToEmployee = async () => {
+    if (!skillFormData.skill_name.trim() || !skillFormData.skill_category.trim()) {
+      Alert.alert("Missing Fields", "Please provide skill name & category.");
+      return;
+    }
+
+    setProcessingSkills((prev) => new Set(prev).add("new"));
+
+    try {
+      const { data: userData } = await supabase.auth.getUser();
+      if (!userData?.user) return;
+
+      // STEP 1: Check for existing skill
+      let skillId;
+      const { data: existingSkill } = await supabase
+        .from("skills")
+        .select("id")
+        .eq("name", skillFormData.skill_name)
+        .single();
+
+      if (existingSkill) {
+        skillId = existingSkill.id;
+      } else {
+        const { data: newSkill, error: skillError } = await supabase
+          .from("skills")
+          .insert([
+            {
+              name: skillFormData.skill_name,
+              category: skillFormData.skill_category,
+              description: skillFormData.skill_description || null,
+              created_by: userData.user.id,
+            },
+          ])
+          .select("id")
+          .single();
+
+          if (skillError) {
+            console.error(skillError);
+            return;
+          }
+
+          if (!newSkill) {
+            throw new Error("Skill creation returned null");
+          }
+
+        skillId = newSkill.id;
+      }
+
+      // STEP 2: Insert employee_skill
+      await supabase.from("employee_skills").insert([
+        {
+          employee_id: userData.user.id,
+          skill_id: skillId,
+          proficiency_level: skillFormData.proficiency_level,
+          years_experience: skillFormData.years_experience,
+          notes: skillFormData.notes || null,
+          last_used: skillFormData.last_used || null,
+        },
+      ]);
+
+      Alert.alert("Success", "Skill added successfully!");
+      loadEmployeeSkills();
+      setIsAddSkillOpen(false);
+      setSkillFormData({
+        skill_name: "",
+        skill_category: "",
+        skill_description: "",
+        proficiency_level: 1,
+        years_experience: 0,
+        notes: "",
+        last_used: "",
+      });
+    } catch (error) {
+      Alert.alert("Error", "Unable to add skill. Try again.");
+      console.error(error);
+    }
+
+    setProcessingSkills((prev) => {
+      const newSet = new Set(prev);
+      newSet.delete("new");
+      return newSet;
+    });
+  };
+
+  // ------------------- REMOVE SKILL -------------------
+  const removeEmployeeSkill = async (skillId: string) => {
+    setProcessingSkills((prev) => new Set(prev).add(skillId));
+
+    try {
+      await supabase.from("employee_skills").delete().eq("id", skillId);
+      loadEmployeeSkills();
+    } catch (err) {
+      Alert.alert("Error", "Failed to remove skill.");
+    }
+
+    setProcessingSkills((prev) => {
+      const newSet = new Set(prev);
+      newSet.delete(skillId);
+      return newSet;
+    });
+  };
+
+  // ------------------- FILTER -------------------
+  const filteredSkills = employeeSkills.filter(
+    (skill) =>
+      skill.skill_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      skill.skill_category.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  // ------------------- INIT -------------------
+  useEffect(() => {
+    const init = async () => {
+      setLoading(true);
+      await Promise.all([loadUserProfile(), loadEmployeeSkills()]);
+      setLoading(false);
+    };
+    init();
+  }, []);
+
+  if (loading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#f97316" />
+      </View>
+    );
+  }
+
+  // --------------------------------------------------
+  // ------------------- RENDER ------------------------
+  // --------------------------------------------------
+
+const renderStars = (level: number) => {
+  return [...Array(5)].map((_, i) => (
+    <FontAwesome
+      key={i}
+      name={i < level ? "star" : "star-o"}
+      size={18}
+      color={i < level ? "#facc15" : "#d1d5db"}
+      style={{ marginRight: 2 }}
+    />
+  ));
+};
+
+  return (
+    <ScrollView contentContainerStyle={styles.container}>
+      {/* BACK BUTTON */}
+      <TouchableOpacity style={styles.backButton} onPress={() => router.push("/(tabs)/home")}>
+        <Feather name="arrow-left" size={22} color="#111827" />
+      </TouchableOpacity>
+      {/* HEADER */}
+      <Text style={styles.title}>Skills Management</Text>
+
+      {/* ADD SKILL BUTTON */}
+      <TouchableOpacity style={styles.addButton} onPress={() => setIsAddSkillOpen(true)}>
+        <Feather name="plus" size={18} color="#fff" style={{ marginRight: 6 }} />
+        <Text style={styles.addButtonText}>Add Skill</Text>
+      </TouchableOpacity>
+
+      {/* SEARCH */}
+      <View style={styles.searchBox}>
+        <TextInput
+          placeholder="Search skills..."
+          placeholderTextColor="#9ca3af"
+          value={searchTerm}
+          onChangeText={setSearchTerm}
+          style={styles.searchInput}
+        />
+      </View>
+
+      {/* SKILLS GRID */}
+      <View style={styles.grid}>
+        {filteredSkills.length === 0 ? (
+          <Text style={styles.noSkillsText}>No matching skills found.</Text>
+        ) : (
+          filteredSkills.map((skill) => (
+            <View key={skill.id} style={styles.skillCard}>
+              <View style={styles.skillHeader}>
+                <View>
+                  <Text style={styles.skillName}>{skill.skill_name}</Text>
+                  <Text style={styles.skillCategory}>{skill.skill_category}</Text>
+                </View>
+
+                <TouchableOpacity
+                  onPress={() => removeEmployeeSkill(skill.id)}
+                  disabled={processingSkills.has(skill.id)}
+                >
+                  {processingSkills.has(skill.id) ? (
+                    <ActivityIndicator size="small" color="red" />
+                  ) : (
+                    <Feather name="trash-2" size={18} color="red" />
+                  )}
+                </TouchableOpacity>
+              </View>
+
+              <View style={styles.starsRow}>{renderStars(skill.proficiency_level)}</View>
+
+              {skill.years_experience > 0 && (
+                <Text style={styles.experienceText}>{skill.years_experience} years experience</Text>
+              )}
+
+              {skill.notes && <Text style={styles.notesText}>{`"${skill.notes}"`}</Text>}
+
+              {skill.last_used && (
+                <Text style={styles.lastUsedText}>
+                  Last used: {new Date(skill.last_used).toLocaleDateString()}
+                </Text>
+              )}
+            </View>
+          ))
+        )}
+      </View>
+
+      {/* ------------ ADD SKILL MODAL ------------ */}
+      <Modal visible={isAddSkillOpen} transparent animationType="slide">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalCard}>
+            <Text style={styles.modalTitle}>Add New Skill</Text>
+
+            <TextInput
+              placeholder="Skill Name"
+              style={styles.modalInput}
+              value={skillFormData.skill_name}
+              onChangeText={(t) => setSkillFormData({ ...skillFormData, skill_name: t })}
+            />
+
+            <TextInput
+              placeholder="Skill Category"
+              style={styles.modalInput}
+              value={skillFormData.skill_category}
+              onChangeText={(t) => setSkillFormData({ ...skillFormData, skill_category: t })}
+            />
+
+            <Text style={styles.label}>Proficiency Level</Text>
+            <View style={styles.starSelectorRow}>
+              {[1, 2, 3, 4, 5].map((lvl) => (
+                <TouchableOpacity
+                  key={lvl}
+                  onPress={() => setSkillFormData({ ...skillFormData, proficiency_level: lvl })}
+                >
+                  <FontAwesome
+                    name={skillFormData.proficiency_level >= lvl ? "star" : "star-o"}
+                    size={28}
+                    color={skillFormData.proficiency_level >= lvl ? "#facc15" : "#d1d5db"}
+                  />
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            <TextInput
+              placeholder="Years of Experience"
+              keyboardType="numeric"
+              style={styles.modalInput}
+              value={String(skillFormData.years_experience)}
+              onChangeText={(t) =>
+                setSkillFormData({ ...skillFormData, years_experience: Number(t) || 0 })
+              }
+            />
+
+            <TouchableOpacity style={styles.saveButton} onPress={addSkillToEmployee}>
+              {processingSkills.has("new") ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <Text style={styles.saveButtonText}>Add Skill</Text>
+              )}
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.cancelButton} onPress={() => setIsAddSkillOpen(false)}>
+              <Text style={styles.cancelButtonText}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+    </ScrollView>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    backgroundColor: "#f4f4f5",
+    padding: 16,
+    minHeight: "100%",
+  },
+
+  title: {
+    fontSize: 22,
+    fontWeight: "bold",
+    color: "#111827",
+    marginBottom: 16,
+  },
+
+  addButton: {
+    flexDirection: "row",
+    backgroundColor: "#f97316",
+    padding: 12,
+    borderRadius: 8,
+    alignItems: "center",
+    alignSelf: "flex-start",
+    marginBottom: 20,
+  },
+  addButtonText: {
+    color: "#fff",
+    marginLeft: 6,
+    fontWeight: "bold",
+  },
+
+  searchBox: {
+    marginBottom: 16,
+  },
+  searchInput: {
+    backgroundColor: "#ffffff",
+    borderColor: "#d1d5db",
+    borderWidth: 1,
+    borderRadius: 8,
+    padding: 10,
+    color: "#111827",
+  },
+
+  grid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 12,
+  },
+
+  skillCard: {
+    backgroundColor: "#ffffff",
+    width: "48%",
+    borderRadius: 12,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+  },
+
+  skillHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+  },
+  skillName: {
+    fontWeight: "bold",
+    color: "#111827",
+  },
+  skillCategory: {
+    color: "#6b7280",
+    fontSize: 12,
+    marginTop: 2,
+  },
+
+  starsRow: {
+    flexDirection: "row",
+    marginTop: 6,
+  },
+
+  experienceText: {
+    fontSize: 12,
+    color: "#374151",
+    marginTop: 6,
+  },
+
+  notesText: {
+    fontSize: 12,
+    fontStyle: "italic",
+    color: "#6b7280",
+    marginTop: 4,
+  },
+
+  lastUsedText: {
+    fontSize: 12,
+    color: "#6b7280",
+    marginTop: 4,
+  },
+
+  noSkillsText: {
+    textAlign: "center",
+    marginTop: 20,
+    color: "#6b7280",
+  },
+
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.4)",
+    justifyContent: "center",
+    padding: 20,
+  },
+
+  modalCard: {
+    backgroundColor: "#ffffff",
+    padding: 20,
+    borderRadius: 12,
+  },
+
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#111827",
+    marginBottom: 12,
+  },
+
+  modalInput: {
+    backgroundColor: "#ffffff",
+    borderColor: "#d1d5db",
+    borderWidth: 1,
+    borderRadius: 8,
+    padding: 10,
+    color: "#111827",
+    marginBottom: 12,
+  },
+
+  label: {
+    fontSize: 14,
+    fontWeight: "600",
+    marginBottom: 6,
+    color: "#111827",
+  },
+
+  starSelectorRow: {
+    flexDirection: "row",
+    marginBottom: 16,
+  },
+
+  saveButton: {
+    backgroundColor: "#f97316",
+    padding: 12,
+    borderRadius: 8,
+    alignItems: "center",
+    marginBottom: 10,
+  },
+
+  saveButtonText: {
+    color: "#fff",
+    fontWeight: "bold",
+  },
+
+  cancelButton: {
+    padding: 12,
+    borderRadius: 8,
+    alignItems: "center",
+    backgroundColor: "#e5e7eb",
+  },
+  cancelButtonText: {
+    color: "#111827",
+    fontWeight: "bold",
+  },
+
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#f4f4f5",
+  },
+
+  backButton: {
+    marginBottom: 10,
+    alignSelf: "flex-start",
+    padding: 6,
+  },
+});
