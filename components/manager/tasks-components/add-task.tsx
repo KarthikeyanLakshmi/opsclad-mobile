@@ -10,6 +10,8 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { supabase } from "../../../src/lib/supabase";
+import DateTimePicker from "@react-native-community/datetimepicker";
+import { Picker } from "@react-native-picker/picker";
 
 export default function AddTask() {
   const [employees, setEmployees] = useState<any[]>([]);
@@ -25,14 +27,16 @@ export default function AddTask() {
     status: "in_progress",
   });
 
+  // Date pickers visibility
+  const [showStartPicker, setShowStartPicker] = useState(false);
+  const [showEstimatedPicker, setShowEstimatedPicker] = useState(false);
+
   useEffect(() => {
     loadEmployees();
   }, []);
 
   async function loadEmployees() {
-    const { data } = await supabase
-      .from("employees")
-      .select("name");
+    const { data } = await supabase.from("employees").select("name");
 
     setEmployees(data || []);
     setLoading(false);
@@ -52,6 +56,7 @@ export default function AddTask() {
     }
 
     Alert.alert("Success", "Task added");
+
     setTask({
       task_id: "",
       description: "",
@@ -113,36 +118,96 @@ export default function AddTask() {
         ))}
       </ScrollView>
 
-      {/* DEPARTMENT */}
-      <TextInput
-        style={styles.input}
-        placeholder="Department (IT/HR/Sales...)"
-        value={task.department}
-        onChangeText={(v) => setTask({ ...task, department: v })}
-      />
+      {/* DEPARTMENT DROPDOWN */}
+      <Text style={styles.label}>Department</Text>
+      <View style={styles.pickerWrapper}>
+        <Picker
+          selectedValue={task.department}
+          onValueChange={(v) => setTask({ ...task, department: v })}
+        >
+          <Picker.Item label="Select Department" value="" />
+          <Picker.Item label="IT" value="it" />
+          <Picker.Item label="HR" value="hr" />
+          <Picker.Item label="Sales" value="sales" />
+          <Picker.Item label="Marketing" value="marketing" />
+          <Picker.Item label="Operations" value="operations" />
+          <Picker.Item label="Engineering" value="engineering" />
+        </Picker>
+      </View>
 
-      {/* DATES */}
-      <TextInput
-        style={styles.input}
-        placeholder="Start Date (YYYY-MM-DD)"
-        value={task.start_date}
-        onChangeText={(v) => setTask({ ...task, start_date: v })}
-      />
+      {/* STATUS DROPDOWN */}
+      <Text style={styles.label}>Status</Text>
+      <View style={styles.pickerWrapper}>
+        <Picker
+          selectedValue={task.status}
+          onValueChange={(v) => setTask({ ...task, status: v })}
+        >
+          <Picker.Item label="In Progress" value="in_progress" />
+          <Picker.Item label="Completed" value="completed" />
+          <Picker.Item label="On Hold" value="on_hold" />
+          <Picker.Item label="Cancelled" value="cancelled" />
+        </Picker>
+      </View>
 
-      <TextInput
-        style={styles.input}
-        placeholder="Estimated Completion (YYYY-MM-DD)"
-        value={task.estimated_completion_date}
-        onChangeText={(v) =>
-          setTask({ ...task, estimated_completion_date: v })
-        }
-      />
+      {/* START DATE PICKER */}
+      <Text style={styles.label}>Start Date</Text>
+      <TouchableOpacity
+        style={styles.dateButton}
+        onPress={() => setShowStartPicker(true)}
+      >
+        <Text>{task.start_date || "Select Start Date"}</Text>
+      </TouchableOpacity>
 
-      {/* SAVE */}
+      {showStartPicker && (
+        <DateTimePicker
+          mode="date"
+          value={task.start_date ? new Date(task.start_date) : new Date()}
+          onChange={(e, selected) => {
+            setShowStartPicker(false);
+            if (selected) {
+              setTask({
+                ...task,
+                start_date: selected.toISOString().split("T")[0],
+              });
+            }
+          }}
+        />
+      )}
+
+      {/* ESTIMATED DATE PICKER */}
+      <Text style={styles.label}>Estimated Completion Date</Text>
+      <TouchableOpacity
+        style={styles.dateButton}
+        onPress={() => setShowEstimatedPicker(true)}
+      >
+        <Text>{task.estimated_completion_date || "Select Estimated Date"}</Text>
+      </TouchableOpacity>
+
+      {showEstimatedPicker && (
+        <DateTimePicker
+          mode="date"
+          value={
+            task.estimated_completion_date
+              ? new Date(task.estimated_completion_date)
+              : new Date()
+          }
+          onChange={(e, selected) => {
+            setShowEstimatedPicker(false);
+            if (selected) {
+              setTask({
+                ...task,
+                estimated_completion_date:
+                  selected.toISOString().split("T")[0],
+              });
+            }
+          }}
+        />
+      )}
+
+      {/* SAVE BUTTON */}
       <TouchableOpacity style={styles.saveBtn} onPress={addTask}>
         <Text style={styles.saveText}>Add Task</Text>
       </TouchableOpacity>
-
     </ScrollView>
   );
 }
@@ -162,7 +227,8 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 14,
     fontWeight: "700",
-    marginBottom: 8,
+    marginBottom: 6,
+    marginTop: 6,
   },
   chip: {
     paddingVertical: 6,
@@ -179,6 +245,18 @@ const styles = StyleSheet.create({
   },
   chipTextSelected: {
     color: "#fff",
+  },
+  pickerWrapper: {
+    borderWidth: 1,
+    borderColor: "#ccc",
+    borderRadius: 6,
+    marginBottom: 12,
+  },
+  dateButton: {
+    backgroundColor: "#f2f2f2",
+    padding: 12,
+    borderRadius: 6,
+    marginBottom: 12,
   },
   saveBtn: {
     marginTop: 15,

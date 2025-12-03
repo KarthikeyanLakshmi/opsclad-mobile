@@ -14,6 +14,15 @@ type PendingApprovalsProps = {
   emptyComponent?: React.ReactNode;
 };
 
+type PendingChanges = {
+  description?: string;
+  estimated_completion_date?: string | null;
+  actual_completion_date?: string | null;
+  status?: string;
+  changed_by?: string;
+  change_requested_at?: string;
+};
+
 export default function PendingApprovals({
   emptyComponent,
 }: PendingApprovalsProps) {
@@ -38,21 +47,44 @@ export default function PendingApprovals({
   }
 
   async function approveTask() {
-    if (!selectedTask?.id) return;
+  if (!selectedTask?.id) return;
 
-    const changes = JSON.parse(selectedTask.pending_changes || "{}");
-
-    await supabase
-      .from("task_overviews")
-      .update({
-        ...changes,
-        pending_changes: null,
-      })
-      .eq("id", selectedTask.id);
-
-    setSelectedTask(null);
-    loadPending();
+  let parsed: PendingChanges = {};
+  try {
+    parsed = JSON.parse(selectedTask.pending_changes || "{}");
+  } catch (e) {
+    console.error("Invalid pending_changes JSON.", e);
+    return;
   }
+
+  // Only pick fields that actually exist in task_overviews
+  const allowedFields = {
+    description: parsed.description,
+    estimated_completion_date: parsed.estimated_completion_date || null,
+    actual_completion_date:
+      parsed.actual_completion_date === "" ? null : parsed.actual_completion_date,
+    status: parsed.status,
+  };
+
+  console.log("APPLYING:", allowedFields);
+
+  const { error } = await supabase
+    .from("task_overviews")
+    .update({
+      ...allowedFields,
+      pending_changes: null,
+    })
+    .eq("id", selectedTask.id);
+
+  if (error) {
+    console.error("Update failed:", error);
+    return;
+  }
+
+  setSelectedTask(null);
+  loadPending();
+}
+
 
   async function rejectTask() {
     if (!selectedTask?.id) return;

@@ -10,6 +10,8 @@ import {
   Alert,
 } from "react-native";
 import { supabase } from "../../../src/lib/supabase";
+import DateTimePicker from "@react-native-community/datetimepicker";
+import { Picker } from "@react-native-picker/picker";
 
 export default function AllTasks() {
   const [tasks, setTasks] = useState<any[]>([]);
@@ -17,6 +19,10 @@ export default function AllTasks() {
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editValues, setEditValues] = useState<any>({});
+
+  // Date pickers
+  const [showEstimatedPicker, setShowEstimatedPicker] = useState(false);
+  const [showActualPicker, setShowActualPicker] = useState(false);
 
   useEffect(() => {
     loadTasks();
@@ -105,6 +111,7 @@ export default function AllTasks() {
         <View key={task.id} style={styles.card}>
           {editingId === task.id ? (
             <>
+              {/* TASK ID */}
               <TextInput
                 style={styles.input}
                 value={editValues.task_id}
@@ -112,38 +119,99 @@ export default function AllTasks() {
                 placeholder="Task ID"
               />
 
+              {/* DESCRIPTION */}
               <TextInput
                 style={styles.input}
                 value={editValues.description}
-                onChangeText={(t) => setEditValues({ ...editValues, description: t })}
+                onChangeText={(t) =>
+                  setEditValues({ ...editValues, description: t })
+                }
                 placeholder="Description"
               />
 
-              <TextInput
-                style={styles.input}
-                value={editValues.status}
-                onChangeText={(t) => setEditValues({ ...editValues, status: t })}
-                placeholder="Status"
-              />
+              {/* STATUS DROPDOWN */}
+              <Text style={styles.label}>Status</Text>
+              <View style={styles.pickerWrapper}>
+                <Picker
+                  selectedValue={editValues.status}
+                  onValueChange={(val) =>
+                    setEditValues({ ...editValues, status: val })
+                  }
+                >
+                  <Picker.Item label="In Progress" value="in_progress" />
+                  <Picker.Item label="Completed" value="completed" />
+                  <Picker.Item label="On Hold" value="on_hold" />
+                  <Picker.Item label="Cancelled" value="cancelled" />
+                </Picker>
+              </View>
 
-              <TextInput
-                style={styles.input}
-                value={editValues.estimated_completion_date || ""}
-                onChangeText={(t) =>
-                  setEditValues({ ...editValues, estimated_completion_date: t })
-                }
-                placeholder="Estimated (YYYY-MM-DD)"
-              />
+              {/* ESTIMATED DATE PICKER */}
+              <Text style={styles.label}>Estimated Completion Date</Text>
+              <TouchableOpacity
+                style={styles.dateButton}
+                onPress={() => setShowEstimatedPicker(true)}
+              >
+                <Text>
+                  {editValues.estimated_completion_date ||
+                    "Select Estimated Completion Date"}
+                </Text>
+              </TouchableOpacity>
 
-              <TextInput
-                style={styles.input}
-                value={editValues.actual_completion_date || ""}
-                onChangeText={(t) =>
-                  setEditValues({ ...editValues, actual_completion_date: t })
-                }
-                placeholder="Actual (YYYY-MM-DD)"
-              />
+              {showEstimatedPicker && (
+                <DateTimePicker
+                  mode="date"
+                  value={
+                    editValues.estimated_completion_date
+                      ? new Date(editValues.estimated_completion_date)
+                      : new Date()
+                  }
+                  onChange={(e, selected) => {
+                    setShowEstimatedPicker(false);
+                    if (selected) {
+                      setEditValues({
+                        ...editValues,
+                        estimated_completion_date:
+                          selected.toISOString().split("T")[0],
+                      });
+                    }
+                  }}
+                />
+              )}
 
+              {/* ACTUAL DATE PICKER */}
+              <Text style={styles.label}>Actual Completion Date</Text>
+              <TouchableOpacity
+                style={styles.dateButton}
+                onPress={() => setShowActualPicker(true)}
+              >
+                <Text>
+                  {editValues.actual_completion_date ||
+                    "Select Actual Completion Date"}
+                </Text>
+              </TouchableOpacity>
+
+              {showActualPicker && (
+                <DateTimePicker
+                  mode="date"
+                  value={
+                    editValues.actual_completion_date
+                      ? new Date(editValues.actual_completion_date)
+                      : new Date()
+                  }
+                  onChange={(e, selected) => {
+                    setShowActualPicker(false);
+                    if (selected) {
+                      setEditValues({
+                        ...editValues,
+                        actual_completion_date:
+                          selected.toISOString().split("T")[0],
+                      });
+                    }
+                  }}
+                />
+              )}
+
+              {/* SAVE + CANCEL BUTTONS */}
               <View style={styles.row}>
                 <TouchableOpacity style={styles.saveBtn} onPress={saveEdit}>
                   <Text style={styles.btnText}>Save</Text>
@@ -156,6 +224,7 @@ export default function AllTasks() {
             </>
           ) : (
             <>
+              {/* DISPLAY MODE */}
               <Text style={styles.title}>{task.task_id}</Text>
               <Text>Description: {task.description}</Text>
               <Text>Status: {task.status}</Text>
@@ -203,8 +272,23 @@ const styles = StyleSheet.create({
   },
   input: {
     backgroundColor: "#f2f2f2",
-    padding: 8,
+    padding: 10,
     borderRadius: 6,
+    marginBottom: 12,
+  },
+  label: { marginTop: 10, fontWeight: "600" },
+  pickerWrapper: {
+    borderWidth: 1,
+    borderColor: "#ccc",
+    borderRadius: 6,
+    marginTop: 6,
+    marginBottom: 10,
+  },
+  dateButton: {
+    backgroundColor: "#f2f2f2",
+    padding: 12,
+    borderRadius: 6,
+    marginTop: 6,
     marginBottom: 10,
   },
   row: {

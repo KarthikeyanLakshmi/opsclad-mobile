@@ -3,11 +3,10 @@ import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 
 // Internal screens
 import PendingApprovals from "./tasks-components/pending-approval";
-import AllTasks from "./tasks-components/all-tasks";
 import AddTask from "./tasks-components/add-task";
 
 export default function ManagerTasks() {
-  const [tab, setTab] = useState<"pending" | "all" | "add">("pending");
+  const [tab, setTab] = useState<"pending" | "add">("pending");
 
   return (
     <View style={styles.container}>
@@ -22,17 +21,13 @@ export default function ManagerTasks() {
           style={[styles.tabButton, tab === "pending" && styles.activeTab]}
           onPress={() => setTab("pending")}
         >
-          <Text style={[styles.tabText, tab === "pending" && styles.activeTabText]}>
+          <Text
+            style={[
+              styles.tabText,
+              tab === "pending" && styles.activeTabText,
+            ]}
+          >
             Pending Approvals
-          </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[styles.tabButton, tab === "all" && styles.activeTab]}
-          onPress={() => setTab("all")}
-        >
-          <Text style={[styles.tabText, tab === "all" && styles.activeTabText]}>
-            All Tasks
           </Text>
         </TouchableOpacity>
 
@@ -40,7 +35,12 @@ export default function ManagerTasks() {
           style={[styles.tabButton, tab === "add" && styles.activeTab]}
           onPress={() => setTab("add")}
         >
-          <Text style={[styles.tabText, tab === "add" && styles.activeTabText]}>
+          <Text
+            style={[
+              styles.tabText,
+              tab === "add" && styles.activeTabText,
+            ]}
+          >
             Add Task
           </Text>
         </TouchableOpacity>
@@ -49,18 +49,14 @@ export default function ManagerTasks() {
       {/* CONTENT */}
       <View style={{ flex: 1 }}>
         {tab === "pending" && (
-          <View style={{ flex: 1 }}>
-            <PendingApprovals
-              emptyComponent={
-                <View style={styles.emptyBox}>
-                  <Text style={styles.emptyText}>No pending approvals...</Text>
-                </View>
-              }
-            />
-          </View>
+          <PendingApprovals
+            emptyComponent={
+              <View style={styles.emptyBox}>
+                <Text style={styles.emptyText}>No pending approvals...</Text>
+              </View>
+            }
+          />
         )}
-
-        {tab === "all" && <AllTasks />}
 
         {tab === "add" && <AddTask />}
       </View>
@@ -73,19 +69,16 @@ const styles = StyleSheet.create({
 
   header: {
     padding: 20,
-    alignItems: "center",            // Center alignment
-    backgroundColor: "#ffffff",      // White background (remove blue)
+    alignItems: "center",
+    backgroundColor: "#ffffff",
     borderBottomWidth: 1,
     borderColor: "#e5e7eb",
   },
+
   headerTitle: {
     color: "#111827",
     fontSize: 20,
     fontWeight: "700",
-  },
-  headerSubtitle: {
-    color: "#6b7280",
-    marginTop: 4,
   },
 
   tabRow: {
@@ -122,6 +115,7 @@ const styles = StyleSheet.create({
     marginTop: 30,
     alignItems: "center",
   },
+  
   emptyText: {
     fontSize: 16,
     color: "#9ca3af",

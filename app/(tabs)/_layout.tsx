@@ -163,6 +163,14 @@ export default function TabsLayout() {
           headerStyle: { backgroundColor: "#0A1A4F" },
           headerTitleStyle: { color: "#fff" },
 
+              // 🔥 Make bottom nav bigger
+          tabBarStyle: {
+            height: 70,           // ⬆️ increase height
+            paddingBottom: 10,
+            paddingTop: 10,
+          },
+
+
           // TOP LEFT — USERNAME + ROLE
           headerTitle: () => (
             <View>
@@ -202,7 +210,7 @@ export default function TabsLayout() {
           options={{
             tabBarLabel: "",
             tabBarIcon: ({ color }) => (
-              <Ionicons name="home-outline" size={24} color={color} />
+              <Ionicons name="home-outline" size={28} color={color} />
             ),
           }}
         />
@@ -212,7 +220,7 @@ export default function TabsLayout() {
           options={{
             tabBarLabel: "",
             tabBarIcon: ({ color }) => (
-              <Ionicons name="list-outline" size={24} color={color} />
+              <Ionicons name="list-outline" size={28} color={color} />
             ),
           }}
         />
@@ -223,7 +231,7 @@ export default function TabsLayout() {
           options={{
             tabBarLabel: "",
             tabBarIcon: ({ color }) => (
-              <Ionicons name="document-text-outline" size={24} color={color} />
+              <Ionicons name="document-text-outline" size={28} color={color} />
             ),
           }}
         />
@@ -232,7 +240,7 @@ export default function TabsLayout() {
           options={{
             tabBarLabel: "",
             tabBarIcon: ({ color }) => (
-              <Ionicons name="person-outline" size={24} color={color} />
+              <Ionicons name="person-outline" size={28} color={color} />
             ),
           }}
         />
@@ -320,4 +328,5 @@ const styles = StyleSheet.create({
     marginTop: 2,
     gap: 6,
   },
+
 });

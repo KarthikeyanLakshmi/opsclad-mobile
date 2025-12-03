@@ -39,6 +39,8 @@ export type CurrentUser = {
 };
 // ---------------------------------------
 
+const API_BASE_URL = process.env.API_BASE_URL;
+
 export default function ExtractionScreen() {
   const [isExtracting, setIsExtracting] = useState(false);
 
@@ -63,7 +65,7 @@ export default function ExtractionScreen() {
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const isExtractingRef = useRef(false);
 
-  // Default date range
+  // Default date range (past 7 days)
   const today = new Date();
   const sevenDaysAgo = new Date();
   sevenDaysAgo.setDate(today.getDate() - 7);
@@ -73,20 +75,38 @@ export default function ExtractionScreen() {
   );
   const [endDate, setEndDate] = useState(today.toISOString().split("T")[0]);
 
-  // Load user from AsyncStorage (React Native compatible)
+  // Load user from AsyncStorage
   useEffect(() => {
     async function loadUser() {
-      const stored = await AsyncStorage.getItem("currentUser");
-      if (!stored) return;
+      try {
+        if (!API_BASE_URL) {
+          console.log("Missing EXPO_PUBLIC_API_BASE_URL");
+          Alert.alert(
+            "Config error",
+            "API base URL is not configured. Please set EXPO_PUBLIC_API_BASE_URL."
+          );
+          return;
+        }
 
-      const usr: CurrentUser = JSON.parse(stored);
-      setCurrentUser(usr);
+        const stored = await AsyncStorage.getItem("currentUser");
+        if (!stored) return;
 
-      await checkPrerequisites(usr.user_id);
-      await checkStatus(usr.user_id);
+        const usr: CurrentUser = JSON.parse(stored);
+        setCurrentUser(usr);
+
+        await checkPrerequisites(usr.user_id);
+        await checkStatus(usr.user_id);
+      } catch (e) {
+        console.log("loadUser error:", e);
+      }
     }
 
     loadUser();
+
+    // cleanup on unmount
+    return () => {
+      stopPolling();
+    };
   }, []);
 
   // Polling extractor
@@ -100,15 +120,20 @@ export default function ExtractionScreen() {
 
   const startPolling = () => {
     stopPolling();
-    if (currentUser) checkStatus(currentUser.user_id);
 
+    if (!currentUser || !API_BASE_URL) return;
+
+    // Do an immediate status check
+    checkStatus(currentUser.user_id);
+
+    // Poll every 4 seconds to reduce load
     pollingRef.current = setInterval(() => {
       if (isExtractingRef.current && currentUser) {
         checkStatus(currentUser.user_id);
       } else {
         stopPolling();
       }
-    }, 2000);
+    }, 4000);
   };
 
   const stopPolling = () => {
@@ -121,17 +146,25 @@ export default function ExtractionScreen() {
   // Check prerequisites
   async function checkPrerequisites(userId: string) {
     try {
-      const gmailRes = await fetch(`/api/gmail-settings?userId=${userId}`);
+      if (!API_BASE_URL) return;
+
+      const gmailRes = await fetch(
+        `${API_BASE_URL}/api/gmail-settings?userId=${encodeURIComponent(
+          userId
+        )}`
+      );
       const gmail = await gmailRes.json();
 
       if (gmail.success && gmail.connected) {
         setGmailConnected(true);
         setGmailEmail(gmail.email);
+      } else {
+        setGmailConnected(false);
       }
 
-      const csvRes = await fetch("/api/csv-status");
+      const csvRes = await fetch(`${API_BASE_URL}/api/csv-status`);
       const csv = await csvRes.json();
-      setCsvUploaded(csv.uploaded);
+      setCsvUploaded(!!csv.uploaded);
     } catch (e) {
       console.log("prereq error:", e);
     }
@@ -140,13 +173,17 @@ export default function ExtractionScreen() {
   // Check extraction status
   async function checkStatus(userId: string) {
     try {
+      if (!API_BASE_URL) return;
+
       const params = new URLSearchParams({ userId });
 
       if (currentExtractionId) {
         params.append("extractionId", currentExtractionId);
       }
 
-      const res = await fetch(`/api/extract-timesheet?${params}`);
+      const res = await fetch(
+        `${API_BASE_URL}/api/extract-timesheet?${params.toString()}`
+      );
       const json = await res.json();
 
       // Error case
@@ -185,16 +222,26 @@ export default function ExtractionScreen() {
       }));
 
       setIsExtracting(false);
+      stopPolling();
     } catch (e) {
-      console.log("check error:", e);
+      console.log("checkStatus error:", e);
     }
   }
 
   // Start extraction
   const startExtraction = async () => {
-    if (!currentUser) return Alert.alert("User not logged in.");
+    if (!currentUser) {
+      return Alert.alert("User not logged in.");
+    }
+    if (!API_BASE_URL) {
+      return Alert.alert(
+        "Config error",
+        "API base URL is not configured. Please set EXPO_PUBLIC_API_BASE_URL."
+      );
+    }
     if (!gmailConnected) return Alert.alert("Connect Gmail first.");
     if (!csvUploaded) return Alert.alert("Upload CSV files first.");
+    if (isExtracting) return; // avoid double-click
 
     setIsExtracting(true);
     setExtractionStatus({
@@ -208,7 +255,7 @@ export default function ExtractionScreen() {
     setExtractedData([]);
 
     try {
-      const res = await fetch("/api/extract-timesheet", {
+      const res = await fetch(`${API_BASE_URL}/api/extract-timesheet`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -222,11 +269,13 @@ export default function ExtractionScreen() {
 
       if (json.success) {
         setCurrentExtractionId(json.extractionId);
+        // polling will pick up status
       } else {
-        Alert.alert("Failed to start", json.message);
+        Alert.alert("Failed to start", json.message || "Unknown error");
         setIsExtracting(false);
       }
     } catch (e) {
+      console.log("startExtraction error:", e);
       Alert.alert("Error", "Could not start extraction.");
       setIsExtracting(false);
     }
@@ -235,7 +284,7 @@ export default function ExtractionScreen() {
   // UI
   return (
     <ScrollView style={styles.container}>
-      <Text style={styles.header}>Timesheet Extraction</Text>
+      <Text style={styles.header}></Text>
 
       {/* Gmail Status */}
       <View style={styles.box}>
@@ -262,6 +311,7 @@ export default function ExtractionScreen() {
           value={startDate}
           onChangeText={setStartDate}
           placeholder="YYYY-MM-DD"
+          placeholderTextColor="#9ca3af"
         />
 
         <TextInput
@@ -269,6 +319,7 @@ export default function ExtractionScreen() {
           value={endDate}
           onChangeText={setEndDate}
           placeholder="YYYY-MM-DD"
+          placeholderTextColor="#9ca3af"
         />
 
         <TouchableOpacity
