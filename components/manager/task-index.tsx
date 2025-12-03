@@ -3,10 +3,11 @@ import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 
 // Internal screens
 import PendingApprovals from "./tasks-components/pending-approval";
+import AllTasks from "./tasks-components/all-tasks";
 import AddTask from "./tasks-components/add-task";
 
 export default function ManagerTasks() {
-  const [tab, setTab] = useState<"pending" | "add">("pending");
+  const [tab, setTab] = useState<"pending" | "all" | "add">("pending");
 
   return (
     <View style={styles.container}>
@@ -21,13 +22,17 @@ export default function ManagerTasks() {
           style={[styles.tabButton, tab === "pending" && styles.activeTab]}
           onPress={() => setTab("pending")}
         >
-          <Text
-            style={[
-              styles.tabText,
-              tab === "pending" && styles.activeTabText,
-            ]}
-          >
+          <Text style={[styles.tabText, tab === "pending" && styles.activeTabText]}>
             Pending Approvals
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.tabButton, tab === "all" && styles.activeTab]}
+          onPress={() => setTab("all")}
+        >
+          <Text style={[styles.tabText, tab === "all" && styles.activeTabText]}>
+            All Tasks
           </Text>
         </TouchableOpacity>
 
@@ -35,12 +40,7 @@ export default function ManagerTasks() {
           style={[styles.tabButton, tab === "add" && styles.activeTab]}
           onPress={() => setTab("add")}
         >
-          <Text
-            style={[
-              styles.tabText,
-              tab === "add" && styles.activeTabText,
-            ]}
-          >
+          <Text style={[styles.tabText, tab === "add" && styles.activeTabText]}>
             Add Task
           </Text>
         </TouchableOpacity>
@@ -57,6 +57,8 @@ export default function ManagerTasks() {
             }
           />
         )}
+
+        {tab === "all" && <AllTasks />}
 
         {tab === "add" && <AddTask />}
       </View>
@@ -115,7 +117,7 @@ const styles = StyleSheet.create({
     marginTop: 30,
     alignItems: "center",
   },
-  
+
   emptyText: {
     fontSize: 16,
     color: "#9ca3af",

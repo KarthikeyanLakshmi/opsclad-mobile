@@ -80,8 +80,9 @@ export default function AddTask() {
       {/* TASK ID */}
       <TextInput
         style={styles.input}
-        placeholder="Task ID"
+        placeholder="eg.TSK-001"
         value={task.task_id}
+        placeholderTextColor="#6B7280"
         onChangeText={(v) => setTask({ ...task, task_id: v })}
       />
 
@@ -90,6 +91,7 @@ export default function AddTask() {
         style={[styles.input, styles.textarea]}
         placeholder="Description"
         value={task.description}
+        placeholderTextColor="#6B7280"
         onChangeText={(v) => setTask({ ...task, description: v })}
         multiline
       />

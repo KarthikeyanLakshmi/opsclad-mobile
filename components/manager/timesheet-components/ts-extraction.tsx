@@ -311,7 +311,7 @@ export default function ExtractionScreen() {
           value={startDate}
           onChangeText={setStartDate}
           placeholder="YYYY-MM-DD"
-          placeholderTextColor="#9ca3af"
+          placeholderTextColor="#6B7280"
         />
 
         <TextInput
@@ -319,7 +319,7 @@ export default function ExtractionScreen() {
           value={endDate}
           onChangeText={setEndDate}
           placeholder="YYYY-MM-DD"
-          placeholderTextColor="#9ca3af"
+          placeholderTextColor="#6B7280"
         />
 
         <TouchableOpacity

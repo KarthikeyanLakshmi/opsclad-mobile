@@ -172,6 +172,7 @@ export default function EmployeeReportsScreen() {
           style={styles.input}
           placeholder="Client"
           value={filters.client}
+          placeholderTextColor="#6B7280"
           onChangeText={(t) => setFilters({ ...filters, client: t })}
         />
 
@@ -179,6 +180,7 @@ export default function EmployeeReportsScreen() {
           style={styles.input}
           placeholder="Project"
           value={filters.project}
+          placeholderTextColor="#6B7280"
           onChangeText={(t) => setFilters({ ...filters, project: t })}
         />
 

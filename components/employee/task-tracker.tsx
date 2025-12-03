@@ -140,6 +140,7 @@ export default function MyTasksScreen() {
             <TextInput
               style={styles.input}
               value={editValues.description}
+              placeholderTextColor="#6B7280"
               onChangeText={(t) =>
                 setEditValues({ ...editValues, description: t })
               }
@@ -149,6 +150,7 @@ export default function MyTasksScreen() {
             <TextInput
               style={styles.input}
               value={editValues.estimated_completion_date}
+              placeholderTextColor="#6B7280"
               onChangeText={(t) =>
                 setEditValues({
                   ...editValues,
@@ -162,6 +164,7 @@ export default function MyTasksScreen() {
             <TextInput
               style={styles.input}
               value={editValues.actual_completion_date}
+              placeholderTextColor="#6B7280"
               onChangeText={(t) =>
                 setEditValues({
                   ...editValues,

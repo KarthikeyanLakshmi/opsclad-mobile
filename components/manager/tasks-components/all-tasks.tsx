@@ -116,13 +116,16 @@ export default function AllTasks() {
                 style={styles.input}
                 value={editValues.task_id}
                 onChangeText={(t) => setEditValues({ ...editValues, task_id: t })}
-                placeholder="Task ID"
+                placeholder="eg.TSK-001"
+                placeholderTextColor="#6B7280"
+
               />
 
               {/* DESCRIPTION */}
               <TextInput
                 style={styles.input}
                 value={editValues.description}
+                placeholderTextColor="#6B7280"
                 onChangeText={(t) =>
                   setEditValues({ ...editValues, description: t })
                 }
