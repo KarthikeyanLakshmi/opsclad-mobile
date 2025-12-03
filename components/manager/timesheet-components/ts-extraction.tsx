@@ -428,4 +428,4 @@ const styles = StyleSheet.create({
     borderColor: "#eee",
   },
   rowText: { fontSize: 14 },
-});
+}); 
