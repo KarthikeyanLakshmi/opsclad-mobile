@@ -1,5 +1,3 @@
-/** FULL FILE — WITH DATE PICKERS ADDED **/
-
 import React, { useEffect, useState, useMemo } from "react";
 import { useRouter } from "expo-router";
 import {
@@ -13,7 +11,6 @@ import {
   StyleSheet,
   Alert,
 } from "react-native";
-import DateTimePicker from "@react-native-community/datetimepicker";
 import { Ionicons, Feather } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { supabase } from "../../src/lib/supabase";
@@ -86,12 +83,17 @@ export default function EmployeePTOTrackingScreen() {
 
   const [submittingPTO, setSubmittingPTO] = useState(false);
 
-  /* ---------------- DATE PICKER STATES ---------------- */
-  const [showStartPicker, setShowStartPicker] = useState(false);
-  const [showEndPicker, setShowEndPicker] = useState(false);
-  const [showRequestPicker, setShowRequestPicker] = useState(false);
-
   const BASE_PTO_LIMIT_DAYS = 12;
+  const currentYear = selectedYear;
+
+  const yearStart = useMemo(
+    () => startOfYear(new Date(currentYear, 0, 1)),
+    [currentYear]
+  );
+  const yearEnd = useMemo(
+    () => endOfYear(new Date(currentYear, 11, 31)),
+    [currentYear]
+  );
 
   const router = useRouter();
 
@@ -121,15 +123,6 @@ export default function EmployeePTOTrackingScreen() {
     }
   };
 
-  const yearStart = useMemo(
-    () => startOfYear(new Date(selectedYear, 0, 1)),
-    [selectedYear]
-  );
-  const yearEnd = useMemo(
-    () => endOfYear(new Date(selectedYear, 11, 31)),
-    [selectedYear]
-  );
-
   const getSummary = (): EmployeePTOSummary | null => {
     if (!currentEmployee) return null;
 
@@ -152,7 +145,8 @@ export default function EmployeePTOTrackingScreen() {
 
     const ptoDays = ptoHours / 8;
     const nonPtoDays = nonPtoHours / 8;
-    const remaining = Math.max(0, BASE_PTO_LIMIT_DAYS - ptoDays);
+    const effectiveLimit = BASE_PTO_LIMIT_DAYS;
+    const remaining = Math.max(0, effectiveLimit - ptoDays);
 
     return {
       employee_id: currentEmployee.employee_id,
@@ -163,7 +157,7 @@ export default function EmployeePTOTrackingScreen() {
       remaining_pto_days: remaining,
       non_pto_hours: nonPtoHours,
       non_pto_days: nonPtoDays,
-      effective_pto_limit: BASE_PTO_LIMIT_DAYS,
+      effective_pto_limit: effectiveLimit,
     };
   };
 
@@ -203,13 +197,22 @@ export default function EmployeePTOTrackingScreen() {
         .order("date", { ascending: false });
 
       if (error) {
-        showError("Error Loading Data", "Unable to load PTO records.");
+        console.error("Error loading PTO records:", error);
+        showError(
+          "Error Loading Data",
+          "Failed to fetch leave records. Please try again."
+        );
+        setLoading(false);
         return;
       }
 
-      setPtoRecords(data || []);
+      setPtoRecords((data || []) as PTORecord[]);
     } catch (err) {
-      showError("Error", "Unexpected error loading data.");
+      console.error("Error loading PTO records:", err);
+      showError(
+        "Error",
+        "An unexpected error occurred while loading your data."
+      );
     } finally {
       setLoading(false);
     }
@@ -219,53 +222,84 @@ export default function EmployeePTOTrackingScreen() {
     loadPTORecords();
   }, [selectedYear]);
 
-  /* ------------------------- SUBMIT PTO REQUEST ------------------------- */
+  /* ------------------------- ACTIONS ------------------------- */
 
   const submitPTORequest = async () => {
-    if (!ptoRequest.date) {
-      showError("Invalid", "Please choose a date.");
+    if (
+      !currentUser ||
+      !currentEmployee ||
+      !ptoRequest.date ||
+      ptoRequest.hours <= 0
+    ) {
+      showError("Invalid Request", "Please fill in all required fields.");
       return;
     }
 
     const requestDate = new Date(ptoRequest.date);
     const today = new Date();
-
     today.setHours(0, 0, 0, 0);
     requestDate.setHours(0, 0, 0, 0);
 
     if (!isFuture(requestDate) && !isToday(requestDate)) {
-      showError("Invalid Date", "Request date cannot be in the past.");
+      showError(
+        "Invalid Date",
+        "You can only request leave for today or future dates."
+      );
       return;
     }
 
     setSubmittingPTO(true);
 
     try {
-      const dayName = requestDate.toLocaleDateString("en-US", {
-        weekday: "short",
-      });
+      const dayName = requestDate
+        .toLocaleDateString("en-US", { weekday: "short" })
+        .toUpperCase();
 
-      await supabase.from("pto_records").insert({
+      const { error } = await supabase.from("pto_records").insert({
         date: ptoRequest.date,
-        day: dayName.toUpperCase(),
+        day: dayName,
         hours: ptoRequest.hours,
-        employee_name: currentEmployee?.name,
-        employee_id: currentEmployee?.employee_id,
-        sender_email: currentUser?.email,
-        request_reason: ptoRequest.reason,
-        status: "pending",
-        is_pto: false,
+        employee_name: currentEmployee.name,
+        employee_id: currentEmployee.employee_id,
+        sender_email: currentUser.email,
         activity: "PTO Request",
+        status: "pending",
+        request_reason: ptoRequest.reason,
+        is_pto: false,
       });
 
-      showInfo("Success", "Leave request submitted.");
-      setIsPTORequestOpen(false);
+      // @ts-ignore - unique violation check
+      if (error && error.code === "23505") {
+        showError(
+          "Duplicate Request",
+          `A leave request for ${format(requestDate, "yyyy-MM-dd")} already exists.`
+        );
+        return;
+      }
+
+      if (error) {
+        console.error("Error submitting PTO request:", error);
+        showError(
+          "Submission Failed",
+          "Failed to submit your leave request. Please try again."
+        );
+        return;
+      }
+
+      showInfo(
+        "Request Submitted",
+        "Your leave request has been submitted for manager approval."
+      );
 
       setPtoRequest({ date: "", hours: 8, reason: "" });
-
-      loadPTORecords();
+      setIsPTORequestOpen(false);
+      await loadPTORecords();
     } catch (err) {
-      showError("Error", "Request failed.");
+      console.error("Unexpected error submitting PTO request:", err);
+      showError(
+        "Error",
+        "An unexpected error occurred while submitting your request."
+      );
     } finally {
       setSubmittingPTO(false);
     }
@@ -275,9 +309,11 @@ export default function EmployeePTOTrackingScreen() {
 
   if (!currentEmployee) {
     return (
-      <View style={styles.center}>
+      <View style={[styles.center, { backgroundColor: "#f4f4f5" }]}>
         <ActivityIndicator size="large" color="#111827" />
-        <Text>Loading employee info...</Text>
+        <Text style={{ color: "#4b5563", marginTop: 8 }}>
+          Loading employee information...
+        </Text>
       </View>
     );
   }
@@ -287,382 +323,375 @@ export default function EmployeePTOTrackingScreen() {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: "#FFFFFF" }}>
-      <View style={{ flex: 1, paddingTop: 10, backgroundColor: "#f4f4f5" }}>
-        <View style={[styles.container]}>
-          {/* BACK */}
-          <View style={styles.row}>
-            <TouchableOpacity
-              style={styles.backButton}
-              onPress={() => router.push("/(tabs)/home")}
-            >
-              <Feather name="arrow-left" size={22} color="#111" />
-            </TouchableOpacity>
-            <Text style={styles.headerTitle}>My Leave Tracking</Text>
-          </View>
+    <View style={{ flex: 1, paddingTop: 10, backgroundColor: "#f4f4f5" }}>
+    <View style={[styles.container]}>
+      {/* BACK BUTTON */}
+      <View style={styles.row}>
+      <TouchableOpacity
+        style={styles.backButton}
+        onPress={() => router.push("/(tabs)/home")}
+      >
+        <Feather name="arrow-left" size={22} color="#111" />
+      </TouchableOpacity>
+      <Text style={styles.headerTitle}>My Leave Tracking</Text>
+      </View>
 
-          {/* HEADER */}
-          <View style={styles.header}>
-            <Text style={styles.headerSubtitle}>
-              Year {selectedYear} • PTO limit: {summary?.effective_pto_limit} days
-            </Text>
-          </View>
 
-          {/* YEAR SELECTOR */}
-          <View style={styles.yearRow}>
-            <TouchableOpacity
-              onPress={() => setSelectedYear((y) => y - 1)}
-              style={styles.yearBtn}
-            >
-              <Ionicons name="chevron-back" size={16} color="#111" />
-            </TouchableOpacity>
-
-            <Text style={styles.yearText}>{selectedYear}</Text>
-
-            <TouchableOpacity
-              onPress={() => setSelectedYear((y) => y + 1)}
-              style={styles.yearBtn}
-            >
-              <Ionicons name="chevron-forward" size={16} color="#111" />
-            </TouchableOpacity>
-          </View>
-
-          {/* REQUEST LEAVE BUTTON */}
-          <View style={styles.actionRow}>
-            <TouchableOpacity
-              style={[styles.btnPrimary, { backgroundColor: "#0A1A4F" }]}
-              onPress={() => setIsPTORequestOpen(true)}
-            >
-              <Ionicons name="add-circle-outline" size={16} color="white" />
-              <Text style={styles.btnText}>Request Leave</Text>
-            </TouchableOpacity>
-          </View>
-
-          {/* TABS */}
-          <View style={styles.tabs}>
-            <TouchableOpacity
-              onPress={() => setActiveTab("overview")}
-              style={[styles.tab, activeTab === "overview" && styles.activeTab]}
-            >
-              <Text
-                style={[
-                  styles.tabText,
-                  activeTab === "overview" && styles.tabTextActive,
-                ]}
-              >
-                Leave Overview
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              onPress={() => setActiveTab("reports")}
-              style={[styles.tab, activeTab === "reports" && styles.activeTab]}
-            >
-              <Text
-                style={[
-                  styles.tabText,
-                  activeTab === "reports" && styles.tabTextActive,
-                ]}
-              >
-                My Analytics
-              </Text>
-            </TouchableOpacity>
-          </View>
-
-          <ScrollView style={{ flex: 1 }}>
-            {/* ------------------- OVERVIEW TAB ------------------- */}
-            {activeTab === "overview" && (
-              <View>
-                {/* DATE FILTERS */}
-                <View style={styles.filterRow}>
-                  {/* Start date */}
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.label}>Start Date</Text>
-
-                    <TouchableOpacity
-                      onPress={() => setShowStartPicker(true)}
-                      style={styles.input}
-                    >
-                      <Text
-                        style={{
-                          color: dateRange.start ? "#111827" : "#9ca3af",
-                        }}
-                      >
-                        {dateRange.start || "Start Date"}
-                      </Text>
-                    </TouchableOpacity>
-
-                    {showStartPicker && (
-                      <DateTimePicker
-                        value={new Date()}
-                        mode="date"
-                        onChange={(e, d) => {
-                          setShowStartPicker(false);
-                          if (d) {
-                            setDateRange((prev) => ({
-                              ...prev,
-                              start: d.toISOString().split("T")[0],
-                            }));
-                          }
-                        }}
-                      />
-                    )}
-                  </View>
-
-                  {/* End date */}
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.label}>End Date</Text>
-
-                    <TouchableOpacity
-                      onPress={() => setShowEndPicker(true)}
-                      style={styles.input}
-                    >
-                      <Text
-                        style={{
-                          color: dateRange.end ? "#111827" : "#9ca3af",
-                        }}
-                      >
-                        {dateRange.end || "End Date"}
-                      </Text>
-                    </TouchableOpacity>
-
-                    {showEndPicker && (
-                      <DateTimePicker
-                        value={new Date()}
-                        mode="date"
-                        onChange={(e, d) => {
-                          setShowEndPicker(false);
-                          if (d) {
-                            setDateRange((prev) => ({
-                              ...prev,
-                              end: d.toISOString().split("T")[0],
-                            }));
-                          }
-                        }}
-                      />
-                    )}
-                  </View>
-                </View>
-
-                {/* ---------------- RECORD LIST ---------------- */}
-                <View style={styles.card}>
-                  <Text style={styles.cardTitle}>My Leave Records</Text>
-                  <Text style={styles.cardSubtitle}>
-                    Showing {records.length} records for {selectedYear}
-                  </Text>
-
-                  {loading ? (
-                    <View style={{ marginTop: 16 }}>
-                      <ActivityIndicator size="small" color="#111" />
-                    </View>
-                  ) : records.length === 0 ? (
-                    <Text style={{ textAlign: "center", marginTop: 20 }}>
-                      No records found.
-                    </Text>
-                  ) : (
-                    records.map((rec) => (
-                      <View
-                        key={rec.id}
-                        style={[styles.recordRow, { borderColor: "#e5e7eb" }]}
-                      >
-                        <View style={{ flex: 1 }}>
-                          <Text style={{ color: "#111", fontSize: 13 }}>
-                            {format(parseISO(rec.date), "yyyy-MM-dd")}
-                          </Text>
-                          <Text style={{ color: "#6b7280", fontSize: 11 }}>
-                            {rec.day}
-                          </Text>
-                        </View>
-
-                        <View style={styles.badgeSmall}>
-                          <Text style={{ color: "#1d4ed8" }}>
-                            {rec.hours} h
-                          </Text>
-                        </View>
-
-                        <View style={styles.badgeSmall}>
-                          <Text
-                            style={{
-                              color: rec.is_pto ? "#0f766e" : "#d97706",
-                            }}
-                          >
-                            {rec.is_pto ? "PTO" : "Non-PTO"}
-                          </Text>
-                        </View>
-
-                        <View
-                          style={[
-                            styles.statusBadge,
-                            {
-                              backgroundColor:
-                                rec.status === "approved"
-                                  ? "#dcfce7"
-                                  : rec.status === "pending"
-                                  ? "#fef9c3"
-                                  : "#fee2e2",
-                            },
-                          ]}
-                        >
-                          <Ionicons
-                            name={
-                              rec.status === "approved"
-                                ? "checkmark-circle"
-                                : rec.status === "pending"
-                                ? "time"
-                                : "close-circle"
-                            }
-                            size={12}
-                            color={
-                              rec.status === "approved"
-                                ? "#16a34a"
-                                : rec.status === "pending"
-                                ? "#ca8a04"
-                                : "#b91c1c"
-                            }
-                          />
-
-                          <Text style={styles.statusText}>
-                            {rec.status}
-                          </Text>
-                        </View>
-                      </View>
-                    ))
-                  )}
-                </View>
-              </View>
-            )}
-
-            {/* ------------------- REPORTS TAB ------------------- */}
-            {activeTab === "reports" && summary && (
-              <View>
-                <View style={styles.card}>
-                  <Text style={styles.cardTitle}>Leave Summary</Text>
-
-                  <View style={styles.summaryRow}>
-                    <Text style={styles.summaryLabel}>PTO Used</Text>
-                    <Text style={{ fontWeight: "700" }}>
-                      {summary.total_pto_days.toFixed(1)} days
-                    </Text>
-                  </View>
-
-                  <View style={styles.summaryRow}>
-                    <Text style={styles.summaryLabel}>PTO Remaining</Text>
-                    <Text
-                      style={{
-                        fontWeight: "700",
-                        color:
-                          summary.remaining_pto_days <= 1
-                            ? "#dc2626"
-                            : "#16a34a",
-                      }}
-                    >
-                      {summary.remaining_pto_days.toFixed(1)} days
-                    </Text>
-                  </View>
-
-                  <View style={styles.summaryRow}>
-                    <Text style={styles.summaryLabel}>Non-PTO</Text>
-                    <Text style={{ fontWeight: "700" }}>
-                      {summary.non_pto_days.toFixed(1)} days
-                    </Text>
-                  </View>
-                </View>
-              </View>
-            )}
-          </ScrollView>
-
-          {/* ------------------- PTO REQUEST MODAL ------------------- */}
-          <Modal visible={isPTORequestOpen} transparent animationType="slide">
-            <View style={styles.modalOverlay}>
-              <View style={styles.modalBox}>
-                <Text style={styles.modalTitle}>Request Leave</Text>
-
-                {/* DATE PICKER FIELD */}
-                <TouchableOpacity
-                  onPress={() => setShowRequestPicker(true)}
-                  style={styles.modalInput}
-                >
-                  <Text style={{ color: ptoRequest.date ? "#111" : "#9ca3af" }}>
-                    {ptoRequest.date || "Select Date"}
-                  </Text>
-                </TouchableOpacity>
-
-                {showRequestPicker && (
-                  <DateTimePicker
-                    value={new Date()}
-                    mode="date"
-                    onChange={(e, d) => {
-                      setShowRequestPicker(false);
-                      if (d) {
-                        setPtoRequest((prev) => ({
-                          ...prev,
-                          date: d.toISOString().split("T")[0],
-                        }));
-                      }
-                    }}
-                  />
-                )}
-
-                {/* HOURS */}
-                <TextInput
-                  placeholder="Hours (e.g., 8)"
-                  placeholderTextColor="#9ca3af"
-                  keyboardType="numeric"
-                  style={styles.modalInput}
-                  value={String(ptoRequest.hours)}
-                  onChangeText={(text) =>
-                    setPtoRequest((prev) => ({
-                      ...prev,
-                      hours: parseInt(text || "0", 10),
-                    }))
-                  }
-                />
-
-                {/* REASON */}
-                <TextInput
-                  placeholder="Reason (optional)"
-                  placeholderTextColor="#9ca3af"
-                  style={[styles.modalInput, { height: 80 }]}
-                  multiline
-                  value={ptoRequest.reason}
-                  onChangeText={(t) =>
-                    setPtoRequest((prev) => ({ ...prev, reason: t }))
-                  }
-                />
-
-                {/* BUTTONS */}
-                <View style={styles.modalButtons}>
-                  <TouchableOpacity
-                    onPress={() => setIsPTORequestOpen(false)}
-                    style={[styles.modalBtn, { borderColor: "#d1d5db" }]}
-                  >
-                    <Text>Cancel</Text>
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    onPress={submitPTORequest}
-                    disabled={submittingPTO}
-                    style={[
-                      styles.modalBtn,
-                      {
-                        backgroundColor: "#f97316",
-                        borderColor: "#f97316",
-                      },
-                    ]}
-                  >
-                    {submittingPTO ? (
-                      <ActivityIndicator color="#fff" />
-                    ) : (
-                      <Text style={{ color: "white", fontWeight: "700" }}>
-                        Submit
-                      </Text>
-                    )}
-                  </TouchableOpacity>
-                </View>
-              </View>
-            </View>
-          </Modal>
+      {/* Header */}
+      <View style={styles.header}>
+        <View>
+          <Text style={styles.headerSubtitle}>
+            Year {currentYear} • PTO limit:{" "}
+            {summary?.effective_pto_limit || BASE_PTO_LIMIT_DAYS} days
+          </Text>
         </View>
       </View>
+
+      {/* Year Selector */}
+      <View style={styles.yearRow}>
+        <TouchableOpacity
+          onPress={() => setSelectedYear((y) => y - 1)}
+          style={styles.yearBtn}
+        >
+          <Ionicons name="chevron-back" size={16} color="#111827" />
+        </TouchableOpacity>
+
+        <Text style={styles.yearText}>{selectedYear}</Text>
+
+        <TouchableOpacity
+          onPress={() => setSelectedYear((y) => y + 1)}
+          style={styles.yearBtn}
+        >
+          <Ionicons name="chevron-forward" size={16} color="#111827" />
+        </TouchableOpacity>
+      </View>
+
+      {/* Action buttons */}
+      <View style={styles.actionRow}>
+        <TouchableOpacity
+          style={[styles.btnPrimary, { backgroundColor: "#0A1A4F" }]}
+          onPress={() => setIsPTORequestOpen(true)}
+        >
+          <Ionicons name="add-circle-outline" size={16} color="white" />
+          <Text style={styles.btnText}>Request Leave</Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* Tabs */}
+      <View style={styles.tabs}>
+        <TouchableOpacity
+          onPress={() => setActiveTab("overview")}
+          style={[
+            styles.tab,
+            activeTab === "overview" && styles.activeTab,
+          ]}
+        >
+          <Text
+            style={[
+              styles.tabText,
+              activeTab === "overview" && styles.tabTextActive,
+            ]}
+          >
+            Leave Overview
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          onPress={() => setActiveTab("reports")}
+          style={[
+            styles.tab,
+            activeTab === "reports" && styles.activeTab,
+          ]}
+        >
+          <Text
+            style={[
+              styles.tabText,
+              activeTab === "reports" && styles.tabTextActive,
+            ]}
+          >
+            My Analytics
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+      <ScrollView style={{ flex: 1 }}>
+        {/* OVERVIEW TAB */}
+        {activeTab === "overview" && (
+          <View>
+            {/* Date filters */}
+            <View style={styles.filterRow}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.label}>Start Date</Text>
+                <TextInput
+                  placeholder="YYYY-MM-DD"
+                  placeholderTextColor="#9ca3af"
+                  style={styles.input}
+                  value={dateRange.start}
+                  onChangeText={(text) =>
+                    setDateRange((prev) => ({ ...prev, start: text }))
+                  }
+                />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.label}>End Date</Text>
+                <TextInput
+                  placeholder="YYYY-MM-DD"
+                  placeholderTextColor="#9ca3af"
+                  style={styles.input}
+                  value={dateRange.end}
+                  onChangeText={(text) =>
+                    setDateRange((prev) => ({ ...prev, end: text }))
+                  }
+                />
+              </View>
+            </View>
+
+            {/* Records card */}
+            <View style={styles.card}>
+              <Text style={styles.cardTitle}>My Leave Records</Text>
+              <Text style={styles.cardSubtitle}>
+                Showing {records.length} records for {currentYear}
+              </Text>
+
+              {loading ? (
+                <View style={{ marginTop: 16, alignItems: "center" }}>
+                  <ActivityIndicator size="small" color="#111827" />
+                </View>
+              ) : records.length === 0 ? (
+                <View style={{ marginTop: 20, alignItems: "center" }}>
+                  <Text style={{ color: "#6b7280" }}>
+                    No leave records found.
+                  </Text>
+                </View>
+              ) : (
+                records.map((rec) => (
+                  <View
+                    key={rec.id}
+                    style={[styles.recordRow, { borderColor: "#e5e7eb" }]}
+                  >
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ color: "#111827", fontSize: 13 }}>
+                        {format(parseISO(rec.date), "yyyy-MM-dd")}
+                      </Text>
+                      <Text style={{ color: "#6b7280", fontSize: 11 }}>
+                        {rec.day}
+                      </Text>
+                    </View>
+
+                    <View style={styles.badgeSmall}>
+                      <Text style={{ color: "#1d4ed8", fontSize: 11 }}>
+                        {rec.hours} h
+                      </Text>
+                    </View>
+
+                    <View style={styles.badgeSmall}>
+                      <Text
+                        style={{
+                          color: rec.is_pto ? "#0f766e" : "#d97706",
+                          fontSize: 11,
+                        }}
+                      >
+                        {rec.is_pto ? "PTO" : "Non-PTO"}
+                      </Text>
+                    </View>
+
+                    <View
+                      style={[
+                        styles.statusBadge,
+                        {
+                          backgroundColor:
+                            rec.status === "approved"
+                              ? "#dcfce7"
+                              : rec.status === "pending"
+                              ? "#fef9c3"
+                              : "#fee2e2",
+                        },
+                      ]}
+                    >
+                      <Ionicons
+                        name={
+                          rec.status === "approved"
+                            ? "checkmark-circle"
+                            : rec.status === "pending"
+                            ? "time"
+                            : "close-circle"
+                        }
+                        size={12}
+                        color={
+                          rec.status === "approved"
+                            ? "#16a34a"
+                            : rec.status === "pending"
+                            ? "#ca8a04"
+                            : "#b91c1c"
+                        }
+                      />
+                      <Text style={styles.statusText}>
+                        {rec.status.charAt(0).toUpperCase() +
+                          rec.status.slice(1)}
+                      </Text>
+                    </View>
+                  </View>
+                ))
+              )}
+            </View>
+          </View>
+        )}
+
+        {/* REPORTS TAB */}
+        {activeTab === "reports" && summary && (
+          <View>
+            <View style={styles.card}>
+              <Text style={styles.cardTitle}>Leave Summary</Text>
+
+              <View style={styles.summaryRow}>
+                <Text style={styles.summaryLabel}>PTO Used</Text>
+                <Text style={[styles.summaryValue, { color: "#1d4ed8" }]}>
+                  {summary.total_pto_days.toFixed(1)} days
+                </Text>
+              </View>
+
+              <View style={styles.summaryRow}>
+                <Text style={styles.summaryLabel}>PTO Remaining</Text>
+                <Text
+                  style={[
+                    styles.summaryValue,
+                    {
+                      color:
+                        summary.remaining_pto_days <= 1
+                          ? "#dc2626"
+                          : "#16a34a",
+                    },
+                  ]}
+                >
+                  {summary.remaining_pto_days.toFixed(1)} days
+                </Text>
+              </View>
+
+              <View style={styles.summaryRow}>
+                <Text style={styles.summaryLabel}>Non-PTO</Text>
+                <Text style={[styles.summaryValue, { color: "#d97706" }]}>
+                  {summary.non_pto_days.toFixed(1)} days
+                </Text>
+              </View>
+            </View>
+
+            <View style={styles.card}>
+              <Text style={styles.cardTitle}>PTO Usage</Text>
+              <Text style={styles.cardSubtitle}>
+                Visual representation of used vs total
+              </Text>
+
+              <View style={styles.barBg}>
+                <View
+                  style={[
+                    styles.barFill,
+                    {
+                      width: `${
+                        Math.min(
+                          100,
+                          (summary.total_pto_days /
+                            summary.effective_pto_limit) *
+                            100
+                        ) || 0
+                      }%`,
+                    },
+                  ]}
+                />
+              </View>
+            </View>
+          </View>
+        )}
+      </ScrollView>
+
+      {/* PTO Request Modal */}
+      <Modal
+        visible={isPTORequestOpen}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setIsPTORequestOpen(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalBox}>
+            <Text style={styles.modalTitle}>Request Leave</Text>
+
+            <TextInput
+              placeholder="Date (YYYY-MM-DD)"
+              placeholderTextColor="#9ca3af"
+              style={styles.modalInput}
+              value={ptoRequest.date}
+              onChangeText={(text) =>
+                setPtoRequest((prev) => ({ ...prev, date: text }))
+              }
+            />
+
+            <TextInput
+              placeholder="Hours (e.g., 8)"
+              placeholderTextColor="#9ca3af"
+              keyboardType="numeric"
+              style={styles.modalInput}
+              value={String(ptoRequest.hours)}
+              onChangeText={(text) =>
+                setPtoRequest((prev) => ({
+                  ...prev,
+                  hours: parseInt(text || "0", 10) || 0,
+                }))
+              }
+            />
+
+            <TextInput
+              placeholder="Reason (optional)"
+              placeholderTextColor="#9ca3af"
+              style={[styles.modalInput, { height: 80 }]}
+              multiline
+              value={ptoRequest.reason}
+              onChangeText={(text) =>
+                setPtoRequest((prev) => ({ ...prev, reason: text }))
+              }
+            />
+
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                onPress={() => setIsPTORequestOpen(false)}
+                style={[styles.modalBtn, { borderColor: "#d1d5db" }]}
+              >
+                <Text style={{ color: "#374151" }}>Cancel</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={submitPTORequest}
+                disabled={submittingPTO}
+                style={[
+                  styles.modalBtn,
+                  {
+                    backgroundColor: "#f97316",
+                    borderColor: "#f97316",
+                    flexDirection: "row",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  },
+                ]}
+              >
+                {submittingPTO ? (
+                  <ActivityIndicator size="small" color="#ffffff" />
+                ) : (
+                  <>
+                    <Ionicons
+                      name="send-outline"
+                      size={16}
+                      color="#ffffff"
+                    />
+                    <Text style={{ color: "#ffffff", marginLeft: 6 }}>
+                      Submit
+                    </Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+    </View>
+    </View>
     </SafeAreaView>
   );
 }
@@ -670,82 +699,136 @@ export default function EmployeePTOTrackingScreen() {
 /* ------------------------- STYLES ------------------------- */
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 14 },
-
-  center: { flex: 1, justifyContent: "center", alignItems: "center" },
-
-  row: { flexDirection: "row", alignItems: "center", gap: 10 },
-
-  backButton: {
-    padding: 6,
-    alignSelf: "flex-start",
+  container: {
+    flex: 1,
+    padding: 14,
   },
-
-  headerTitle: { fontSize: 20, fontWeight: "700", color: "#111827" },
-
-  headerSubtitle: { fontSize: 12, color: "#6b7280" },
-
-  yearRow: { flexDirection: "row", alignItems: "center", marginVertical: 12 },
-
-  yearBtn: {
-    padding: 6,
-    backgroundColor: "#e5e7eb",
-    borderRadius: 20,
-  },
-
-  yearText: { marginHorizontal: 10, fontWeight: "700" },
-
-  actionRow: { flexDirection: "row", justifyContent: "flex-end" },
-
-  btnPrimary: {
-    flexDirection: "row",
-    paddingVertical: 8,
-    paddingHorizontal: 14,
-    borderRadius: 8,
+  center: {
+    flex: 1,
+    justifyContent: "center",
     alignItems: "center",
   },
 
-  btnText: { color: "#fff", fontWeight: "700", marginLeft: 6 },
+  header: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 12,
+  },
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: "700",
+    color: "#111827",
+  },
+  headerSubtitle: {
+    fontSize: 12,
+    color: "#6b7280",
+    marginTop: 2,
+  },
+
+  yearRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  yearBtn: {
+    padding: 6,
+    borderRadius: 20,
+    backgroundColor: "#e5e7eb",
+  },
+  yearText: {
+    marginHorizontal: 10,
+    fontWeight: "600",
+    color: "#111827",
+  },
+
+  actionRow: {
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    marginBottom: 12,
+  },
+  btnPrimary: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    borderRadius: 8,
+  },
+  btnText: {
+    color: "#ffffff",
+    marginLeft: 6,
+    fontSize: 13,
+    fontWeight: "600",
+  },
 
   tabs: {
     flexDirection: "row",
     backgroundColor: "#e5e7eb",
     borderRadius: 20,
     padding: 4,
-    marginVertical: 10,
+    marginBottom: 10,
+  },
+  tab: {
+    flex: 1,
+    paddingVertical: 6,
+    alignItems: "center",
+    borderRadius: 20,
+  },
+  activeTab: {
+    backgroundColor: "#ffffff",
+  },
+  tabText: {
+    fontSize: 12,
+    color: "#6b7280",
+    fontWeight: "500",
+  },
+  tabTextActive: {
+    color: "#111827",
+    fontWeight: "700",
   },
 
-  tab: { flex: 1, paddingVertical: 6, alignItems: "center" },
-
-  activeTab: { backgroundColor: "#fff", borderRadius: 20 },
-
-  tabText: { fontSize: 12, color: "#6b7280" },
-
-  tabTextActive: { color: "#111827", fontWeight: "700" },
-
-  filterRow: { flexDirection: "row", gap: 10, marginBottom: 10 },
-
-  label: { fontSize: 12, color: "#4b5563", marginBottom: 4 },
-
+  filterRow: {
+    flexDirection: "row",
+    gap: 10,
+    marginBottom: 10,
+  },
+  label: {
+    fontSize: 12,
+    color: "#4b5563",
+    marginBottom: 4,
+  },
   input: {
     backgroundColor: "#ffffff",
     borderWidth: 1,
     borderColor: "#e5e7eb",
     borderRadius: 8,
-    padding: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    fontSize: 13,
+    color: "#111827",
   },
 
   card: {
     backgroundColor: "#ffffff",
-    padding: 14,
     borderRadius: 12,
+    padding: 14,
     marginBottom: 12,
+    // light shadow similar to other pages
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.06,
+    shadowRadius: 3,
     elevation: 2,
   },
-
-  cardTitle: { fontSize: 16, fontWeight: "700" },
-
-  cardSubtitle: { fontSize: 12, color: "#6b7280" },
+  cardTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#111827",
+  },
+  cardSubtitle: {
+    fontSize: 12,
+    color: "#6b7280",
+    marginTop: 2,
+  },
 
   recordRow: {
     flexDirection: "row",
@@ -753,12 +836,11 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderBottomWidth: 1,
   },
-
   badgeSmall: {
     paddingHorizontal: 6,
     paddingVertical: 4,
-    backgroundColor: "#eff6ff",
     borderRadius: 999,
+    backgroundColor: "#eff6ff",
     marginHorizontal: 4,
   },
 
@@ -769,17 +851,38 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     borderRadius: 999,
   },
-
   statusText: {
     marginLeft: 4,
     fontSize: 11,
+    color: "#111827",
     textTransform: "capitalize",
   },
 
   summaryRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginVertical: 4,
+    marginTop: 6,
+  },
+  summaryLabel: {
+    fontSize: 12,
+    color: "#6b7280",
+  },
+  summaryValue: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#111827",
+  },
+
+  barBg: {
+    marginTop: 10,
+    height: 10,
+    borderRadius: 999,
+    backgroundColor: "#e5e7eb",
+    overflow: "hidden",
+  },
+  barFill: {
+    height: 10,
+    backgroundColor: "#16a34a",
   },
 
   modalOverlay: {
@@ -788,52 +891,48 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     padding: 20,
   },
-
   modalBox: {
-    backgroundColor: "#fff",
-    padding: 16,
+    backgroundColor: "#f9fafb",
     borderRadius: 12,
+    padding: 16,
   },
-
-  modalTitle: { fontSize: 16, fontWeight: "700", marginBottom: 12 },
-
+  modalTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#111827",
+    marginBottom: 8,
+  },
   modalInput: {
-    backgroundColor: "#fff",
+    backgroundColor: "#ffffff",
     borderWidth: 1,
-    borderColor: "#ddd",
+    borderColor: "#e5e7eb",
     borderRadius: 8,
-    padding: 10,
-    marginBottom: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    fontSize: 13,
+    color: "#111827",
+    marginBottom: 10,
   },
-
   modalButtons: {
     flexDirection: "row",
     justifyContent: "flex-end",
+    marginTop: 8,
     gap: 10,
   },
-
   modalBtn: {
     borderWidth: 1,
     borderRadius: 8,
-    paddingVertical: 10,
-    paddingHorizontal: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
   },
 
-  summaryLabel: {
-    fontSize: 12,
-    color: "#6b7280",
+  backButton: {
+    marginBottom: 10,
+    alignSelf: "flex-start",
+    padding: 6,
   },
-
-  summaryValue: {
-    fontSize: 12,
-    fontWeight: "600",
-    color: "#111827",
+    row: {
+    flexDirection: "row",
+    gap: 10,
   },
-  
-  header: {
-  flexDirection: "row",
-  justifyContent: "space-between",
-  alignItems: "center",
-  marginBottom: 12,
-},
 });

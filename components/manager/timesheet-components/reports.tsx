@@ -52,8 +52,6 @@ export default function ReportsScreen() {
       .select("*")
       .eq("is_pto", true);
 
-    const { data: holidays } = await supabase.from("holidays").select("*");
-
     const transformedPTO = (pto || []).map((p) => ({
       ...p,
       activity: "PTO",
@@ -62,19 +60,9 @@ export default function ReportsScreen() {
       required_hours: p.hours,
     }));
 
-    const transformedHolidays = (holidays || []).map((h) => ({
-      ...h,
-      activity: "Holiday",
-      hours: Number(h.required_hours ?? 8),
-      client: "",
-      project: "",
-    }));
-
-    const combined = [
-      ...(timesheets || []),
-      ...transformedPTO,
-      ...transformedHolidays,
-    ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    const combined = [...(timesheets || []), ...transformedPTO].sort(
+      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+    );
 
     setCombinedData(combined);
 
@@ -146,7 +134,9 @@ export default function ReportsScreen() {
     let csv = "Employee,Client,Project,Date,Activity,Hours\n";
 
     filteredData.forEach((d) => {
-      csv += `${d.employee_name},${d.client || "-"},${d.project || "-"},${d.date},${d.activity},${d.hours}\n`;
+      csv += `${d.employee_name},${d.client || "-"},${d.project || "-"},${
+        d.date
+      },${d.activity},${d.hours}\n`;
     });
 
     await Share.share({ message: csv });
@@ -279,7 +269,7 @@ export default function ReportsScreen() {
 
       {/* SUMMARY */}
       {summary && (
-        <View style={styles.card}>
+        <View style={styles.cardSummary}>
           <Text style={styles.sectionTitle}>Summary</Text>
 
           <View style={styles.grid}>
@@ -305,30 +295,82 @@ export default function ReportsScreen() {
         </View>
       )}
 
-      {/* RESULTS */}
-      {filteredData.length > 0 && (
-        <View style={styles.card}>
-          <Text style={styles.sectionTitle}>Filtered Results</Text>
+    {/* RESULTS */}
+    {filteredData.length > 0 && (
+      <View style={styles.cardResult}>
+        <Text style={styles.sectionTitle}>Filtered Results</Text>
 
-          <ScrollView horizontal>
-            <View>
-              {filteredData.map((d, i) => (
-                <View key={i} style={styles.rowItem}>
-                  <Text>{d.date}</Text>
-                  <Text>{d.employee_name}</Text>
-                  <Text>{d.client || "-"}</Text>
-                  <Text>{d.project || "-"}</Text>
-                  <Text>{d.hours}</Text>
+        {/* Group by month */}
+        {Object.entries(
+          filteredData.reduce((groups: Record<string, any[]>, item: any) => {
+            const month = new Date(item.date).toLocaleString("en-US", {
+              month: "long",
+              year: "numeric",
+            });
+
+            if (!groups[month]) groups[month] = [];
+            groups[month].push(item);
+
+            return groups;
+          }, {})
+        ).map(([month, items]: [string, any[]]) => (
+          <View key={month} style={{ marginBottom: 16 }}>
+            <Text style={styles.monthHeader}>{month}</Text>
+
+            {items.map((d: any, index: number) => (
+              <View
+                key={index}
+                style={[
+                  styles.resultCard,
+                  index % 2 === 1 && styles.resultCardAlt,
+                ]}
+              >
+                {/* HEADER ROW */}
+                <View style={styles.resultHeaderRow}>
+                  <Text style={styles.resultHeaderDate}>{d.date}</Text>
+
+                  <View
+                    style={[
+                      styles.activityBadge,
+                      d.activity === "WORK" && { backgroundColor: "#d1e7ff" },
+                      d.activity === "PTO" && { backgroundColor: "#ffe0e0" },
+                    ]}
+                  >
+                    <Text style={styles.activityText}>{d.activity}</Text>
+                  </View>
                 </View>
-              ))}
-            </View>
-          </ScrollView>
 
-          <TouchableOpacity style={styles.exportBtn} onPress={exportCSV}>
-            <Text style={styles.exportText}>Export CSV</Text>
-          </TouchableOpacity>
-        </View>
-      )}
+                {/* DETAILS */}
+                <View style={styles.resultRow}>
+                  <Text style={styles.resultLabel}>👤 Employee</Text>
+                  <Text style={styles.resultValue}>{d.employee_name}</Text>
+                </View>
+
+                <View style={styles.resultRow}>
+                  <Text style={styles.resultLabel}>🏢 Client</Text>
+                  <Text style={styles.resultValue}>{d.client || "-"}</Text>
+                </View>
+
+                <View style={styles.resultRow}>
+                  <Text style={styles.resultLabel}>📁 Project</Text>
+                  <Text style={styles.resultValue}>{d.project || "-"}</Text>
+                </View>
+
+                <View style={styles.hoursBadge}>
+                  <Text style={styles.hoursText}>{d.hours} hours</Text>
+                </View>
+              </View>
+            ))}
+          </View>
+        ))}
+
+
+    <TouchableOpacity style={styles.exportBtn} onPress={exportCSV}>
+      <Text style={styles.exportText}>Export CSV</Text>
+    </TouchableOpacity>
+  </View>
+)}
+
     </ScrollView>
   );
 }
@@ -348,6 +390,29 @@ const styles = StyleSheet.create({
     // 3-SIDE BLUE BORDER (left, top, right)
     borderLeftWidth: 5,
     borderTopWidth: 5,
+    borderRightWidth: 5,
+    borderColor: "#0A1A4F",
+  },
+  cardSummary: {
+    backgroundColor: "#fff",
+    padding: 16,
+    borderRadius: 10,
+    marginBottom: 12,
+
+    // 3-SIDE BLUE BORDER (left, top, right)
+    borderLeftWidth: 5,
+    borderRightWidth: 5,
+    borderColor: "#0A1A4F",
+  },
+  cardResult: {
+    backgroundColor: "#fff",
+    padding: 16,
+    borderRadius: 10,
+    marginBottom: 12,
+
+    // 3-SIDE BLUE BORDER (left, top, right)
+    borderLeftWidth: 5,
+    borderBottomWidth: 5,
     borderRightWidth: 5,
     borderColor: "#0A1A4F",
   },
@@ -460,4 +525,89 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
+  monthHeader: {
+  fontSize: 18,
+  fontWeight: "700",
+  color: "#0A1A4F",
+  marginBottom: 6,
+  marginTop: 10,
+},
+
+resultCard: {
+  backgroundColor: "#ffffff",
+  padding: 14,
+  borderRadius: 12,
+  borderWidth: 1,
+  borderColor: "#e6e6e6",
+  marginBottom: 10,
+  shadowColor: "#000",
+  shadowOpacity: 0.06,
+  shadowRadius: 6,
+  shadowOffset: { width: 0, height: 3 },
+  elevation: 3,
+},
+
+resultCardAlt: {
+  backgroundColor: "#f7faff",
+},
+
+resultHeaderRow: {
+  flexDirection: "row",
+  justifyContent: "space-between",
+  alignItems: "center",
+  marginBottom: 10,
+},
+
+resultHeaderDate: {
+  fontSize: 15,
+  fontWeight: "700",
+  color: "#0A1A4F",
+},
+
+activityBadge: {
+  backgroundColor: "#e7e7e7",
+  paddingVertical: 4,
+  paddingHorizontal: 12,
+  borderRadius: 20,
+},
+
+activityText: {
+  fontSize: 12,
+  fontWeight: "700",
+  color: "#0A1A4F",
+},
+
+resultRow: {
+  flexDirection: "row",
+  justifyContent: "space-between",
+  marginBottom: 6,
+},
+
+resultLabel: {
+  fontWeight: "600",
+  color: "#444",
+  fontSize: 13,
+},
+
+resultValue: {
+  fontWeight: "500",
+  color: "#0A1A4F",
+  fontSize: 13,
+},
+
+hoursBadge: {
+  marginTop: 10,
+  alignSelf: "flex-end",
+  backgroundColor: "#0A1A4F",
+  paddingVertical: 5,
+  paddingHorizontal: 12,
+  borderRadius: 20,
+},
+
+hoursText: {
+  color: "white",
+  fontWeight: "700",
+  fontSize: 12,
+},
+
 });

@@ -5,7 +5,6 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  TextInput,
   ActivityIndicator,
   Alert,
 } from "react-native";
@@ -18,15 +17,20 @@ import DateTimePicker from "@react-native-community/datetimepicker";
 
 export default function EmployeeReportsScreen() {
   const router = useRouter();
-
   const [currentUser, setCurrentUser] = useState<any>(null);
-  const [userProfile, setUserProfile] = useState<any>(null);
+  const [userProfile, setUserProfile] = useState<{
+    profiles: {
+      id: string;
+      username: string;
+      email: string;
+      employee_id: string | null;
+    };
+  } | null>(null);  
   const [combinedData, setCombinedData] = useState<any[]>([]);
   const [filteredData, setFilteredData] = useState<any[]>([]);
   const [summaryStats, setSummaryStats] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Filters
   const [filters, setFilters] = useState({
     client: "all",
     project: "all",
@@ -50,23 +54,23 @@ export default function EmployeeReportsScreen() {
 
       setCurrentUser(authData.user);
 
-      const { data: roleData } = await supabase
-        .from("user_roles")
-        .select("profiles(id, username, email, employee_id)")
-        .eq("user_id", authData.user.id)
-        .single<{
-          profiles: {
-            id: string;
-            username: string;
-            email: string;
-            employee_id: string | null;
-          };
-        }>();
+    const { data: roleData } = await supabase
+      .from("user_roles")
+      .select("profiles(id, username, email, employee_id)")
+      .eq("user_id", authData.user.id)
+      .single<{
+        profiles: {
+          id: string;
+          username: string;
+          email: string;
+          employee_id: string | null;
+        };
+      }>();
 
       setUserProfile(roleData);
 
-    const employeeId = roleData?.profiles?.employee_id ?? authData.user.email!;
-
+      const employeeId =
+        roleData?.profiles?.employee_id ?? authData.user.email!;
       await loadCombinedData(employeeId);
     } catch (err) {
       console.error(err);
@@ -109,54 +113,62 @@ export default function EmployeeReportsScreen() {
     setCombinedData(combined);
   };
 
-  const parseDate = (d: string) => {
-    if (!d) return null;
+  const parseDate = (dateString: string) => {
+    if (!dateString) return null;
 
-    const iso = new Date(d);
-    if (!isNaN(iso.getTime())) return iso;
+    // Handle ISO direct
+    if (dateString.includes("T")) {
+      const iso = new Date(dateString);
+      if (!isNaN(iso.getTime())) return iso;
+    }
 
-    // Try DD/MM/YYYY or MM/DD/YYYY
-    const parts = d.split(/[-/ ]/);
+    // Force MM/DD/YYYY parsing
+    const parts = dateString.split("/");
     if (parts.length === 3) {
-      let [a, b, c] = parts;
-
-      // If first number > 12 → must be DD/MM/YYYY
-      if (parseInt(a) > 12) {
-        return new Date(`${c}-${b}-${a}`);
-      }
-
-      // Otherwise assume MM/DD/YYYY
-      return new Date(`${c}-${a}-${b}`);
+      const [MM, DD, YYYY] = parts.map((x) => x.trim());
+      const final = new Date(`${YYYY}-${MM}-${DD}`);
+      return isNaN(final.getTime()) ? null : final;
     }
 
     return null;
   };
 
+
   const applyFilters = () => {
+    if (!filters.dateFrom || !filters.dateTo) {
+      Alert.alert("Missing Dates", "Please select both From and To dates.");
+      return;
+    }
+
+    const fromDate = new Date(filters.dateFrom);
+    const toDate = new Date(filters.dateTo);
+
     const filtered = combinedData.filter((item) => {
       const itemDate = parseDate(item.date);
-      if (!itemDate) return false; // strict
 
-      const fromDate = filters.dateFrom ? new Date(filters.dateFrom) : null;
-      const toDate = filters.dateTo ? new Date(filters.dateTo) : null;
+      if (!itemDate) return false;
 
-      if (fromDate && itemDate < fromDate) return false;
-      if (toDate && itemDate > toDate) return false;
+      // STRICT: only include records between these dates
+      if (itemDate < fromDate) return false;
+      if (itemDate > toDate) return false;
 
-      if (filters.client !== "all" && item.client !== filters.client) return false;
-      if (filters.project !== "all" && item.project !== filters.project) return false;
+      if (filters.client !== "all" && item.client !== filters.client)
+        return false;
+
+      if (filters.project !== "all" && item.project !== filters.project)
+        return false;
 
       return true;
     });
 
-    setFilteredData(filtered);
-
     if (filtered.length === 0) {
+      setFilteredData([]);
       setSummaryStats(null);
-      Alert.alert("No data found", "There are no records in this date range.");
+      Alert.alert("No Records", "No timesheet entries match your selected dates.");
       return;
     }
 
+    setFilteredData(filtered);
     updateSummary(filtered);
   };
 
@@ -173,8 +185,6 @@ export default function EmployeeReportsScreen() {
   };
 
   const updateSummary = (data: any[]) => {
-    if (data.length === 0) return null;
-
     const totalHours = data.reduce((sum, x) => sum + (x.hours || 0), 0);
 
     const clients = new Set(data.map((x) => x.client).filter(Boolean));
@@ -195,9 +205,9 @@ export default function EmployeeReportsScreen() {
     if (filteredData.length === 0)
       return Alert.alert("Nothing to export");
 
-    // Use the employee_name from first record (all filtered data belongs to same user)
     const employeeName =
-      filteredData[0]?.employee_name?.replace(/\s+/g, "_") || "Employee";
+      filteredData[0]?.employee_name?.replace(/\s+/g, "_") ||
+      "Employee";
 
     const fileName = `${employeeName}-Timesheet.csv`;
 
@@ -216,7 +226,6 @@ export default function EmployeeReportsScreen() {
 
     await Sharing.shareAsync(fileUri);
   };
-
 
   const clients = [
     "all",
@@ -239,25 +248,19 @@ export default function EmployeeReportsScreen() {
 
   return (
     <ScrollView style={styles.container}>
-      {/* HEADER */}
       <View style={styles.headerRow}>
-        <TouchableOpacity onPress={() => router.back()}>
-          <Text style={styles.backButton}>‹ Back</Text>
-        </TouchableOpacity>
         <Text style={styles.pageTitle}>My Timesheet Reports</Text>
       </View>
 
-      {/* FILTERS */}
+      {/* FILTER CARD */}
       <View style={styles.filterCard}>
         <Text style={styles.cardHeader}>Filters</Text>
 
         {/* CLIENT */}
-        <Text style={styles.label}>Client</Text>
         <View style={styles.dropdownWrapper}>
           <Picker
             selectedValue={filters.client}
             onValueChange={(v) => setFilters({ ...filters, client: v })}
-            style={styles.picker}
           >
             {clients.map((c) => (
               <Picker.Item
@@ -270,12 +273,10 @@ export default function EmployeeReportsScreen() {
         </View>
 
         {/* PROJECT */}
-        <Text style={styles.label}>Project</Text>
         <View style={styles.dropdownWrapper}>
           <Picker
             selectedValue={filters.project}
             onValueChange={(v) => setFilters({ ...filters, project: v })}
-            style={styles.picker}
           >
             {projects.map((p) => (
               <Picker.Item
@@ -349,7 +350,7 @@ export default function EmployeeReportsScreen() {
         </View>
       </View>
 
-      {/* SUMMARY */}
+      {/* SUMMARY CARD */}
       {summaryStats && (
         <View style={styles.summaryCard}>
           <Text style={styles.cardHeader}>Summary</Text>
@@ -371,13 +372,43 @@ export default function EmployeeReportsScreen() {
             </TouchableOpacity>
           </View>
 
-          {filteredData.map((item, i) => (
-            <View key={i} style={styles.entryCard}>
-              <Text style={styles.entryDate}>{item.date}</Text>
-              <Text style={styles.entryText}>Client: {item.client || "-"}</Text>
-              <Text style={styles.entryText}>Project: {item.project || "-"}</Text>
-              <Text style={styles.entryText}>Activity: {item.activity}</Text>
-              <Text style={styles.entryHours}>Hours: {item.hours}</Text>
+          {filteredData.map((d, index) => (
+            <View
+              key={index}
+              style={[
+                styles.resultCard,
+                index % 2 === 1 && styles.resultCardAlt,
+              ]}
+            >
+              {/* HEADER */}
+              <View style={styles.resultHeaderRow}>
+                <Text style={styles.resultHeaderDate}>{d.date}</Text>
+
+                <View
+                  style={[
+                    styles.activityBadge,
+                    d.activity === "WORK" && { backgroundColor: "#d1e7ff" },
+                    d.activity === "PTO" && { backgroundColor: "#ffe0e0" },
+                  ]}
+                >
+                  <Text style={styles.activityText}>{d.activity}</Text>
+                </View>
+              </View>
+
+              {/* DETAILS */}
+              <View style={styles.resultRow}>
+                <Text style={styles.resultLabel}>🏢 Client:</Text>
+                <Text style={styles.resultValue}>{d.client || "-"}</Text>
+              </View>
+
+              <View style={styles.resultRow}>
+                <Text style={styles.resultLabel}>📁 Project:</Text>
+                <Text style={styles.resultValue}>{d.project || "-"}</Text>
+              </View>
+
+              <View style={styles.hoursBadge}>
+                <Text style={styles.hoursText}>{d.hours} hours</Text>
+              </View>
             </View>
           ))}
         </View>
@@ -391,13 +422,9 @@ const styles = StyleSheet.create({
 
   headerRow: {
     flexDirection: "row",
+    justifyContent: "center",
     alignItems: "center",
     marginBottom: 16,
-  },
-  backButton: {
-    fontSize: 16,
-    color: "#0A1A4F",
-    marginRight: 8,
   },
   pageTitle: {
     fontSize: 22,
@@ -405,7 +432,6 @@ const styles = StyleSheet.create({
     color: "#0A1A4F",
   },
 
-  /* FILTER CARD — BLUE BORDER TOP LEFT + TOP RIGHT */
   filterCard: {
     backgroundColor: "#fff",
     padding: 16,
@@ -414,10 +440,7 @@ const styles = StyleSheet.create({
     borderTopWidth: 4,
     borderLeftWidth: 4,
     borderRightWidth: 4,
-    borderTopColor: "#0A1A4F",
-    borderLeftColor: "#0A1A4F",
-    borderRightColor: "#0A1A4F",
-
+    borderColor: "#0A1A4F",
   },
 
   cardHeader: {
@@ -428,14 +451,6 @@ const styles = StyleSheet.create({
   },
 
   label: { color: "#333", fontWeight: "600", marginBottom: 4 },
-  input: {
-    borderWidth: 1,
-    borderColor: "#ccc",
-    borderRadius: 8,
-    padding: 10,
-    backgroundColor: "#fff",
-    marginBottom: 12,
-  },
 
   dropdownWrapper: {
     borderWidth: 1,
@@ -444,6 +459,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     backgroundColor: "#fff",
   },
+
   picker: { width: "100%" },
 
   dateInput: {
@@ -454,6 +470,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     backgroundColor: "#fff",
   },
+
   dateText: { color: "#333" },
 
   row: { flexDirection: "row", gap: 10 },
@@ -472,7 +489,6 @@ const styles = StyleSheet.create({
   },
   btnText: { textAlign: "center", color: "#fff", fontWeight: "700" },
 
-  /* SUMMARY CARD */
   summaryCard: {
     backgroundColor: "#fff",
     padding: 16,
@@ -480,24 +496,19 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     borderLeftWidth: 4,
     borderRightWidth: 4,
-    borderLeftColor: "#0A1A4F",
-    borderRightColor: "#0A1A4F",
-
+    borderColor: "#0A1A4F",
   },
+
   summaryText: { fontSize: 14, marginBottom: 4, color: "#333" },
 
-  /* RESULTS CARD — BLUE BORDER BOTTOM LEFT + BOTTOM RIGHT */
   resultsCard: {
     backgroundColor: "#fff",
     padding: 16,
     borderRadius: 12,
     marginBottom: 30,
-    borderBottomWidth: 4,
-    borderLeftWidth: 4,
-    borderRightWidth: 4,
-    borderBottomColor: "#0A1A4F",
-    borderLeftColor: "#0A1A4F",
-    borderRightColor: "#0A1A4F",
+    borderWidth: 4,
+    borderColor: "#0A1A4F",
+    borderTopWidth: 0,
   },
 
   rowBetween: {
@@ -506,6 +517,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 12,
   },
+
   exportBtn: {
     backgroundColor: "#0A1A4F",
     paddingVertical: 6,
@@ -514,17 +526,82 @@ const styles = StyleSheet.create({
   },
   exportBtnText: { color: "#fff", fontWeight: "600" },
 
-  entryCard: {
-    padding: 12,
+  resultCard: {
+    backgroundColor: "#ffffff",
+    padding: 14,
+    borderRadius: 12,
     borderWidth: 1,
-    borderColor: "#eee",
-    borderRadius: 8,
-    marginBottom: 12,
-    backgroundColor: "#fafafa",
+    borderColor: "#e6e6e6",
+    marginBottom: 10,
+    shadowColor: "#000",
+    shadowOpacity: 0.06,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 3,
   },
-  entryDate: { fontWeight: "700", color: "#0A1A4F", marginBottom: 4 },
-  entryText: { color: "#333" },
-  entryHours: { color: "#0A1A4F", fontWeight: "700", marginTop: 4 },
+
+  resultCardAlt: {
+    backgroundColor: "#f7faff",
+  },
+
+  resultHeaderRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 10,
+  },
+
+  resultHeaderDate: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: "#0A1A4F",
+  },
+
+  activityBadge: {
+    backgroundColor: "#e7e7e7",
+    paddingVertical: 4,
+    paddingHorizontal: 12,
+    borderRadius: 20,
+  },
+
+  activityText: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: "#0A1A4F",
+  },
+
+  resultRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 6,
+  },
+
+  resultLabel: {
+    fontWeight: "600",
+    color: "#444",
+    fontSize: 13,
+  },
+
+  resultValue: {
+    fontWeight: "500",
+    color: "#0A1A4F",
+    fontSize: 13,
+  },
+
+  hoursBadge: {
+    marginTop: 10,
+    alignSelf: "flex-end",
+    backgroundColor: "#0A1A4F",
+    paddingVertical: 5,
+    paddingHorizontal: 12,
+    borderRadius: 20,
+  },
+
+  hoursText: {
+    color: "white",
+    fontWeight: "700",
+    fontSize: 12,
+  },
 
   loadingCenter: {
     flex: 1,

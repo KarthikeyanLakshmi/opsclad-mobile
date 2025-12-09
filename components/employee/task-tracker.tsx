@@ -54,6 +54,15 @@ export default function MyTasksScreen() {
   const [loading, setLoading] = useState<boolean>(true);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editValues, setEditValues] = useState<Partial<Task>>({});
+  const [searchQuery, setSearchQuery] = useState("");
+  const filteredTasks = tasks.filter((task) => {
+  const q = searchQuery.toLowerCase();
+    return (
+      task.task_id.toLowerCase().includes(q) ||
+      task.description.toLowerCase().includes(q) ||
+      task.department.toLowerCase().includes(q)
+    );
+  });
 
   const currentUser = "Karthikeyan Lakshmi"; // TODO replace later
 
@@ -261,10 +270,22 @@ export default function MyTasksScreen() {
       </View>
     );
 
-  return (
-    <View style={{ padding: 12 }}>
-      <FlatList
-        data={tasks}
+return (
+  <View style={{ padding: 12 }}>
+
+    {/* SEARCH BAR */}
+    <View style={styles.searchContainer}>
+      <TextInput
+        style={styles.searchInput}
+        placeholder="Search tasks..."
+        placeholderTextColor="#6B7280"
+        value={searchQuery}
+        onChangeText={setSearchQuery}
+      />
+    </View>
+
+    <FlatList
+      data={filteredTasks}
         keyExtractor={(item) => item.id}
         renderItem={renderItem}
         ListEmptyComponent={
@@ -371,4 +392,19 @@ const styles = StyleSheet.create({
   },
 
   center: { flex: 1, justifyContent: "center", alignItems: "center" },
+
+  searchContainer: {
+    marginBottom: 12,
+  },
+
+  searchInput: {
+    borderWidth: 1,
+    borderColor: "#ccc",
+    backgroundColor: "#ffffff", // ← white background
+    borderRadius: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    fontSize: 14,
+    color: "#111",
+  },
 });

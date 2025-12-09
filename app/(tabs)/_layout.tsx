@@ -108,7 +108,6 @@ export default function TabsLayout() {
                 {profile?.username ?? "User"}
               </Text>
               <View style={styles.roleRow}>
-                <Ionicons name="briefcase-outline" size={16} color="#cbd5e1" />
                 <Text style={styles.profileRole}>
                   {profile?.role ?? "Role"}
                 </Text>

@@ -222,7 +222,7 @@ export default function EmployeeSkillTracker() {
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
-    <View style={{ flex: 1, paddingTop: 100 , backgroundColor: "#f4f4f5"}}>
+    <View style={{ flex: 1, paddingTop: 10 , backgroundColor: "#f4f4f5"}}>
       {/* BACK */}
       <View style={styles.row}>
       <TouchableOpacity style={styles.backButton} onPress={() => router.push("/(tabs)/home")}>
