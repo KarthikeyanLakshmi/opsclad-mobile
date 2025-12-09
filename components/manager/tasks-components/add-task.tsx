@@ -37,26 +37,69 @@ export default function AddTask() {
 
   async function loadEmployees() {
     const { data } = await supabase.from("employees").select("name");
-
     setEmployees(data || []);
     setLoading(false);
   }
 
+  // -------------------------------------------------------
+  // 🔥 AUTO-GENERATE TASK ID (TSK-smallest_available_number)
+  // -------------------------------------------------------
+  async function generateTaskId() {
+    const { data, error } = await supabase
+      .from("task_overviews")
+      .select("task_id");
+
+    if (error || !data) return "TSK-001";
+
+    // Extract numbers from "TSK-###"
+    const numbers = data
+      .map((t) => parseInt(t.task_id?.replace("TSK-", ""), 10))
+      .filter((n) => !isNaN(n))
+      .sort((a, b) => a - b);
+
+    // Find the lowest missing number
+    let next = 1;
+    for (let n of numbers) {
+      if (n === next) {
+        next++;
+      } else if (n > next) {
+        break;
+      }
+    }
+
+    // Pad number to 3 digits → 001, 023, 120  
+    const padded = String(next).padStart(3, "0");
+
+    return `TSK-${padded}`;
+  }
+
+  // -------------------------------------------------------
+  // ADD TASK WITH AUTO-GENERATED ID
+  // -------------------------------------------------------
   async function addTask() {
-    if (!task.task_id || !task.description || !task.owner) {
+    if (!task.description || !task.owner) {
       Alert.alert("Missing Fields", "Please fill all required fields.");
       return;
     }
 
-    const { error } = await supabase.from("task_overviews").insert([task]);
+    // Generate task ID before inserting
+    const newTaskId = await generateTaskId();
+
+    const payload = {
+      ...task,
+      task_id: newTaskId,
+    };
+
+    const { error } = await supabase.from("task_overviews").insert([payload]);
 
     if (error) {
       Alert.alert("Error", "Failed to add task");
       return;
     }
 
-    Alert.alert("Success", "Task added");
+    Alert.alert("Success", `Task ${newTaskId} added successfully`);
 
+    // Reset form
     setTask({
       task_id: "",
       description: "",
@@ -77,19 +120,10 @@ export default function AddTask() {
 
   return (
     <ScrollView style={styles.container}>
-      {/* TASK ID */}
-      <TextInput
-        style={styles.input}
-        placeholder="eg.TSK-001"
-        value={task.task_id}
-        placeholderTextColor="#6B7280"
-        onChangeText={(v) => setTask({ ...task, task_id: v })}
-      />
-
       {/* DESCRIPTION */}
       <TextInput
         style={[styles.input, styles.textarea]}
-        placeholder="Description"
+        placeholder="Task Description"
         value={task.description}
         placeholderTextColor="#6B7280"
         onChangeText={(v) => setTask({ ...task, description: v })}
@@ -120,7 +154,7 @@ export default function AddTask() {
         ))}
       </ScrollView>
 
-      {/* DEPARTMENT DROPDOWN */}
+      {/* DEPARTMENT */}
       <Text style={styles.label}>Department</Text>
       <View style={styles.pickerWrapper}>
         <Picker
@@ -137,7 +171,7 @@ export default function AddTask() {
         </Picker>
       </View>
 
-      {/* STATUS DROPDOWN */}
+      {/* STATUS */}
       <Text style={styles.label}>Status</Text>
       <View style={styles.pickerWrapper}>
         <Picker
@@ -151,7 +185,7 @@ export default function AddTask() {
         </Picker>
       </View>
 
-      {/* START DATE PICKER */}
+      {/* START DATE */}
       <Text style={styles.label}>Start Date</Text>
       <TouchableOpacity
         style={styles.dateButton}
@@ -176,7 +210,7 @@ export default function AddTask() {
         />
       )}
 
-      {/* ESTIMATED DATE PICKER */}
+      {/* ESTIMATED DATE */}
       <Text style={styles.label}>Estimated Completion Date</Text>
       <TouchableOpacity
         style={styles.dateButton}
@@ -206,7 +240,7 @@ export default function AddTask() {
         />
       )}
 
-      {/* SAVE BUTTON */}
+      {/* SUBMIT BUTTON */}
       <TouchableOpacity style={styles.saveBtn} onPress={addTask}>
         <Text style={styles.saveText}>Add Task</Text>
       </TouchableOpacity>
@@ -214,6 +248,9 @@ export default function AddTask() {
   );
 }
 
+// ----------------------------------------------------------------
+// STYLES
+// ----------------------------------------------------------------
 const styles = StyleSheet.create({
   container: { padding: 12 },
   input: {

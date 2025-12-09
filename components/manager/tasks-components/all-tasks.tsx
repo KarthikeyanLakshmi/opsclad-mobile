@@ -15,12 +15,14 @@ import { Picker } from "@react-native-picker/picker";
 
 export default function AllTasks() {
   const [tasks, setTasks] = useState<any[]>([]);
+  const [filteredTasks, setFilteredTasks] = useState<any[]>([]);
+  const [search, setSearch] = useState("");
+
   const [loading, setLoading] = useState(true);
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editValues, setEditValues] = useState<any>({});
 
-  // Date pickers
   const [showEstimatedPicker, setShowEstimatedPicker] = useState(false);
   const [showActualPicker, setShowActualPicker] = useState(false);
 
@@ -43,7 +45,24 @@ export default function AllTasks() {
     }
 
     setTasks(data || []);
+    setFilteredTasks(data || []);
     setLoading(false);
+  }
+
+  function handleSearch(text: string) {
+    setSearch(text);
+
+    const lower = text.toLowerCase();
+
+    const filtered = tasks.filter((t) =>
+      (t.task_id?.toLowerCase().includes(lower) ||
+        t.description?.toLowerCase().includes(lower) ||
+        t.status?.toLowerCase().includes(lower) ||
+        t.estimated_completion_date?.toLowerCase().includes(lower) ||
+        t.actual_completion_date?.toLowerCase().includes(lower))
+    );
+
+    setFilteredTasks(filtered);
   }
 
   function startEdit(task: any) {
@@ -107,7 +126,24 @@ export default function AllTasks() {
 
   return (
     <ScrollView style={styles.container}>
-      {tasks.map((task: any) => (
+
+      {/* 🔍 SEARCH BAR */}
+      <View style={styles.searchWrapper}>
+        <TextInput
+          style={styles.searchInput}
+          placeholder="Search tasks..."
+          placeholderTextColor="#666"
+          value={search}
+          onChangeText={handleSearch}
+        />
+        {search.length > 0 && (
+          <TouchableOpacity onPress={() => handleSearch("")}>
+            <Text style={styles.clearSearch}>Clear</Text>
+          </TouchableOpacity>
+        )}
+      </View>
+
+      {filteredTasks.map((task: any) => (
         <View key={task.id} style={styles.card}>
           {editingId === task.id ? (
             <>
@@ -118,7 +154,6 @@ export default function AllTasks() {
                 onChangeText={(t) => setEditValues({ ...editValues, task_id: t })}
                 placeholder="eg.TSK-001"
                 placeholderTextColor="#6B7280"
-
               />
 
               {/* DESCRIPTION */}
@@ -148,7 +183,7 @@ export default function AllTasks() {
                 </Picker>
               </View>
 
-              {/* ESTIMATED DATE PICKER */}
+              {/* ESTIMATED DATE */}
               <Text style={styles.label}>Estimated Completion Date</Text>
               <TouchableOpacity
                 style={styles.dateButton}
@@ -181,7 +216,7 @@ export default function AllTasks() {
                 />
               )}
 
-              {/* ACTUAL DATE PICKER */}
+              {/* ACTUAL DATE */}
               <Text style={styles.label}>Actual Completion Date</Text>
               <TouchableOpacity
                 style={styles.dateButton}
@@ -259,6 +294,26 @@ export default function AllTasks() {
 
 const styles = StyleSheet.create({
   container: { padding: 12 },
+
+  // SEARCH BAR
+  searchWrapper: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#eee",
+    padding: 10,
+    borderRadius: 10,
+    marginBottom: 10,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 16,
+  },
+  clearSearch: {
+    color: "red",
+    marginLeft: 10,
+    fontWeight: "700",
+  },
+
   card: {
     backgroundColor: "#fff",
     padding: 16,

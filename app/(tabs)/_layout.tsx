@@ -143,6 +143,22 @@ export default function TabsLayout() {
           </View>
         </TouchableOpacity>
 
+
+        {profile?.role === "manager" && (
+        <TouchableOpacity
+          style={styles.drawerItem}
+          onPress={() => {
+            closeDrawer();
+            router.push("../user-roles");
+          }}
+        >
+          <View style={styles.drawerRow}>
+            <Ionicons name="settings-outline" size={22} color="#fff" />
+            <Text style={styles.drawerItemText}>User Roles</Text>
+          </View>
+        </TouchableOpacity>
+      )}
+
         {/* Logout */}
         <TouchableOpacity
           style={styles.logoutBtn}
