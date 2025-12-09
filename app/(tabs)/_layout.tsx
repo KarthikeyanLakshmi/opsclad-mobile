@@ -121,7 +121,7 @@ export default function TabsLayout() {
           style={styles.drawerItem}
           onPress={() => {
             closeDrawer();
-            router.push("/leave-tracker");
+            router.push("/leave");
           }}
         >
           <View style={styles.drawerRow}>
@@ -134,7 +134,7 @@ export default function TabsLayout() {
           style={styles.drawerItem}
           onPress={() => {
             closeDrawer();
-            router.push("/skills-tracker");
+            router.push("/skills");
           }}
         >
           <View style={styles.drawerRow}>

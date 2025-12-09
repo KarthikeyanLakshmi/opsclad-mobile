@@ -1,3 +1,5 @@
+/** FULL FILE — LIGHT MODE CLEAN UI **/
+
 import React, { useEffect, useState } from "react";
 import { useRouter } from "expo-router";
 import {
@@ -12,7 +14,7 @@ import {
   Alert,
 } from "react-native";
 import { supabase } from "@/src/lib/supabase";
-import { FontAwesome , Feather } from "@expo/vector-icons";
+import { FontAwesome, Feather } from "@expo/vector-icons";
 
 export default function EmployeeSkillTracker() {
   const [employeeSkills, setEmployeeSkills] = useState<any[]>([]);
@@ -27,12 +29,12 @@ export default function EmployeeSkillTracker() {
     skill_category: "",
     skill_description: "",
     proficiency_level: 1,
-    years_experience: 0,
+    years_experience: "",
     notes: "",
     last_used: "",
   });
-  const router = useRouter();
 
+  const router = useRouter();
 
   // ------------------- LOAD PROFILE -------------------
   const loadUserProfile = async () => {
@@ -84,7 +86,6 @@ export default function EmployeeSkillTracker() {
       const { data: userData } = await supabase.auth.getUser();
       if (!userData?.user) return;
 
-      // STEP 1: Check for existing skill
       let skillId;
       const { data: existingSkill } = await supabase
         .from("skills")
@@ -108,45 +109,38 @@ export default function EmployeeSkillTracker() {
           .select("id")
           .single();
 
-          if (skillError) {
-            console.error(skillError);
-            return;
-          }
-
-          if (!newSkill) {
-            throw new Error("Skill creation returned null");
-          }
+        if (skillError) return;
+        if (!newSkill) throw new Error("Skill creation returned null");
 
         skillId = newSkill.id;
       }
 
-      // STEP 2: Insert employee_skill
       await supabase.from("employee_skills").insert([
         {
           employee_id: userData.user.id,
           skill_id: skillId,
           proficiency_level: skillFormData.proficiency_level,
-          years_experience: skillFormData.years_experience,
+          years_experience: Number(skillFormData.years_experience) || 0,
           notes: skillFormData.notes || null,
           last_used: skillFormData.last_used || null,
         },
       ]);
 
-      Alert.alert("Success", "Skill added successfully!");
+      Alert.alert("Success", "Skill added!");
       loadEmployeeSkills();
       setIsAddSkillOpen(false);
+
       setSkillFormData({
         skill_name: "",
         skill_category: "",
         skill_description: "",
         proficiency_level: 1,
-        years_experience: 0,
+        years_experience: "",
         notes: "",
         last_used: "",
       });
     } catch (error) {
-      Alert.alert("Error", "Unable to add skill. Try again.");
-      console.error(error);
+      Alert.alert("Error", "Unable to add skill.");
     }
 
     setProcessingSkills((prev) => {
@@ -174,6 +168,21 @@ export default function EmployeeSkillTracker() {
     });
   };
 
+  const confirmDelete = (skillId: string, skillName: string) => {
+    Alert.alert(
+      "Remove Skill",
+      `Are you sure you want to delete "${skillName}"?`,
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: () => removeEmployeeSkill(skillId),
+        },
+      ]
+    );
+  };
+
   // ------------------- FILTER -------------------
   const filteredSkills = employeeSkills.filter(
     (skill) =>
@@ -199,34 +208,33 @@ export default function EmployeeSkillTracker() {
     );
   }
 
-  // --------------------------------------------------
-  // ------------------- RENDER ------------------------
-  // --------------------------------------------------
-
-const renderStars = (level: number) => {
-  return [...Array(5)].map((_, i) => (
-    <FontAwesome
-      key={i}
-      name={i < level ? "star" : "star-o"}
-      size={18}
-      color={i < level ? "#facc15" : "#d1d5db"}
-      style={{ marginRight: 2 }}
-    />
-  ));
-};
+  const renderStars = (level: number) => {
+    return [...Array(5)].map((_, i) => (
+      <FontAwesome
+        key={i}
+        name={i < level ? "star" : "star-o"}
+        size={18}
+        color={i < level ? "#facc15" : "#d1d5db"}
+        style={{ marginRight: 2 }}
+      />
+    ));
+  };
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
-      {/* BACK BUTTON */}
+    <View style={{ flex: 1, paddingTop: 100 , backgroundColor: "#f4f4f5"}}>
+      {/* BACK */}
+      <View style={styles.row}>
       <TouchableOpacity style={styles.backButton} onPress={() => router.push("/(tabs)/home")}>
-        <Feather name="arrow-left" size={22} color="#111827" />
+        <Feather name="arrow-left" size={22} color="#4b5563" />
       </TouchableOpacity>
       {/* HEADER */}
-      <Text style={styles.title}>Skills Management</Text>
+      <Text style={styles.title}>Skills Tracker</Text>
+      </View>
 
       {/* ADD SKILL BUTTON */}
       <TouchableOpacity style={styles.addButton} onPress={() => setIsAddSkillOpen(true)}>
-        <Feather name="plus" size={18} color="#fff" style={{ marginRight: 6 }} />
+        <Feather name="plus" size={18} color="#fff" />
         <Text style={styles.addButtonText}>Add Skill</Text>
       </TouchableOpacity>
 
@@ -241,10 +249,10 @@ const renderStars = (level: number) => {
         />
       </View>
 
-      {/* SKILLS GRID */}
+      {/* SKILLS */}
       <View style={styles.grid}>
         {filteredSkills.length === 0 ? (
-          <Text style={styles.noSkillsText}>No matching skills found.</Text>
+          <Text style={styles.noSkillsText}>No matching skills.</Text>
         ) : (
           filteredSkills.map((skill) => (
             <View key={skill.id} style={styles.skillCard}>
@@ -255,7 +263,7 @@ const renderStars = (level: number) => {
                 </View>
 
                 <TouchableOpacity
-                  onPress={() => removeEmployeeSkill(skill.id)}
+                  onPress={() => confirmDelete(skill.id, skill.skill_name)}
                   disabled={processingSkills.has(skill.id)}
                 >
                   {processingSkills.has(skill.id) ? (
@@ -284,7 +292,7 @@ const renderStars = (level: number) => {
         )}
       </View>
 
-      {/* ------------ ADD SKILL MODAL ------------ */}
+      {/* MODAL */}
       <Modal visible={isAddSkillOpen} transparent animationType="slide">
         <View style={styles.modalOverlay}>
           <View style={styles.modalCard}>
@@ -304,7 +312,7 @@ const renderStars = (level: number) => {
               onChangeText={(t) => setSkillFormData({ ...skillFormData, skill_category: t })}
             />
 
-            <Text style={styles.label}>Proficiency Level</Text>
+            <Text style={styles.label}>Proficiency</Text>
             <View style={styles.starSelectorRow}>
               {[1, 2, 3, 4, 5].map((lvl) => (
                 <TouchableOpacity
@@ -321,12 +329,15 @@ const renderStars = (level: number) => {
             </View>
 
             <TextInput
-              placeholder="Years of Experience"
               keyboardType="numeric"
+              placeholder="Years of Experience"
               style={styles.modalInput}
-              value={String(skillFormData.years_experience)}
+              value={skillFormData.years_experience}
               onChangeText={(t) =>
-                setSkillFormData({ ...skillFormData, years_experience: Number(t) || 0 })
+                setSkillFormData({
+                  ...skillFormData,
+                  years_experience: t.replace(/[^0-9]/g, ""), // only numbers
+                })
               }
             />
 
@@ -344,42 +355,48 @@ const renderStars = (level: number) => {
           </View>
         </View>
       </Modal>
+      </View>
     </ScrollView>
   );
 }
 
+
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: "#f4f4f5",
+    backgroundColor: "#f9fafb",
     padding: 16,
     minHeight: "100%",
   },
 
   title: {
-    fontSize: 22,
-    fontWeight: "bold",
+    fontSize: 24,
+    fontWeight: "700",
     color: "#111827",
     marginBottom: 16,
   },
 
+  backButton: {
+    marginBottom: 10,
+    paddingVertical: 4,
+  },
+
   addButton: {
     flexDirection: "row",
-    backgroundColor: "#f97316",
+    backgroundColor: "#0A1A4F",
     padding: 12,
     borderRadius: 8,
     alignItems: "center",
     alignSelf: "flex-start",
     marginBottom: 20,
+    gap: 6,
   },
   addButtonText: {
     color: "#fff",
-    marginLeft: 6,
-    fontWeight: "bold",
+    fontWeight: "700",
   },
 
-  searchBox: {
-    marginBottom: 16,
-  },
+  searchBox: { marginBottom: 16 },
+
   searchInput: {
     backgroundColor: "#ffffff",
     borderColor: "#d1d5db",
@@ -402,55 +419,59 @@ const styles = StyleSheet.create({
     padding: 12,
     borderWidth: 1,
     borderColor: "#e5e7eb",
+    elevation: 2,
+    shadowColor: "#000",
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
+    shadowOffset: { width: 0, height: 2 },
   },
 
   skillHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
   },
+
   skillName: {
-    fontWeight: "bold",
+    fontWeight: "700",
     color: "#111827",
   },
+
   skillCategory: {
     color: "#6b7280",
     fontSize: 12,
     marginTop: 2,
   },
 
-  starsRow: {
-    flexDirection: "row",
-    marginTop: 6,
-  },
+  starsRow: { flexDirection: "row", marginTop: 6 },
 
   experienceText: {
-    fontSize: 12,
     color: "#374151",
+    fontSize: 12,
     marginTop: 6,
   },
 
   notesText: {
-    fontSize: 12,
     fontStyle: "italic",
     color: "#6b7280",
+    fontSize: 12,
     marginTop: 4,
   },
 
   lastUsedText: {
-    fontSize: 12,
     color: "#6b7280",
+    fontSize: 12,
     marginTop: 4,
   },
 
   noSkillsText: {
     textAlign: "center",
-    marginTop: 20,
     color: "#6b7280",
+    marginTop: 20,
   },
 
   modalOverlay: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.4)",
+    backgroundColor: "rgba(0,0,0,0.35)",
     justifyContent: "center",
     padding: 20,
   },
@@ -459,11 +480,12 @@ const styles = StyleSheet.create({
     backgroundColor: "#ffffff",
     padding: 20,
     borderRadius: 12,
+    elevation: 4,
   },
 
   modalTitle: {
     fontSize: 18,
-    fontWeight: "bold",
+    fontWeight: "700",
     color: "#111827",
     marginBottom: 12,
   },
@@ -479,10 +501,9 @@ const styles = StyleSheet.create({
   },
 
   label: {
-    fontSize: 14,
+    color: "#111827",
     fontWeight: "600",
     marginBottom: 6,
-    color: "#111827",
   },
 
   starSelectorRow: {
@@ -491,7 +512,7 @@ const styles = StyleSheet.create({
   },
 
   saveButton: {
-    backgroundColor: "#f97316",
+    backgroundColor: "#0A1A4F",
     padding: 12,
     borderRadius: 8,
     alignItems: "center",
@@ -500,30 +521,27 @@ const styles = StyleSheet.create({
 
   saveButtonText: {
     color: "#fff",
-    fontWeight: "bold",
+    fontWeight: "700",
   },
 
   cancelButton: {
     padding: 12,
     borderRadius: 8,
-    alignItems: "center",
     backgroundColor: "#e5e7eb",
+    alignItems: "center",
   },
   cancelButtonText: {
     color: "#111827",
-    fontWeight: "bold",
+    fontWeight: "700",
   },
 
   loadingContainer: {
     flex: 1,
     justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "#f4f4f5",
+    backgroundColor: "#f9fafb",
   },
-
-  backButton: {
-    marginBottom: 10,
-    alignSelf: "flex-start",
-    padding: 6,
+    row: {
+    flexDirection: "row",
+    gap: 10,
   },
 });
