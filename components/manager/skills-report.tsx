@@ -93,11 +93,9 @@ export default function SkillTrackerScreen() {
   }
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: "#FFFFFF" }}>
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
     <View style={{ flex: 1, paddingTop: 10 }}>
       
-
       {/* HEADER (User Roles Style) */}
       <View style={styles.headerRow}>
         <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
@@ -209,7 +207,6 @@ export default function SkillTrackerScreen() {
           </View>
         }
       />
-    </View>
     </View>
     </SafeAreaView>
   );

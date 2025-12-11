@@ -1,16 +1,17 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import {
   View,
   Text,
   StyleSheet,
   Alert,
   ScrollView,
+  Animated,
 } from "react-native";
-import { useRouter } from "expo-router";
-import { LoadingOverlay } from "../../src/components/loadingOverlay";
 import { Calendar } from "react-native-calendars";
-import DateDetailsModal from "../../components/dashboard/DateDetailsModal";
+import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "../../src/lib/supabase";
+import DateDetailsModal from "../../components/dashboard/DateDetailsModal";
+import { LoadingOverlay } from "../../src/components/loadingOverlay";
 
 import {
   PTORecord,
@@ -19,7 +20,19 @@ import {
   SelectedDateInfo,
 } from "../../src/types/calendar";
 
-// Normalize ANY date format
+// ---------- Types ----------
+type EventType = "Birthday" | "Holiday";
+
+interface MonthEvent {
+  id: string;
+  sortDate: string;
+  displayDate: string;
+  type: EventType;
+  title: string;
+  description?: string;
+}
+
+// ---------- Utility Helpers ----------
 function normalizeDate(date: string | null): string | null {
   if (!date) return null;
   if (date.includes("T")) return date.split("T")[0];
@@ -30,47 +43,117 @@ function normalizeDate(date: string | null): string | null {
   return date;
 }
 
-function formatPrettyDate(dateStr: string) {
-  try {
-    return new Date(dateStr).toLocaleDateString();
-  } catch {
-    return dateStr;
+function expandRange(start: string, end: string): string[] {
+  const s = new Date(start);
+  const e = new Date(end);
+  const arr: string[] = [];
+  const cur = new Date(s);
+
+  while (cur <= e) {
+    arr.push(cur.toISOString().split("T")[0]);
+    cur.setDate(cur.getDate() + 1);
   }
+  return arr;
 }
 
-type EventType = "PTO" | "Birthday" | "Holiday";
-
-interface MonthEvent {
-  id: string;
-  date: string;
-  type: EventType;
-  title: string;
-  description?: string;
+function formatPretty(date: string) {
+  return new Date(date).toLocaleDateString();
 }
 
+function formatRangePretty(start: string, end: string) {
+  if (start === end) return formatPretty(start);
+  return `${formatPretty(start)} - ${formatPretty(end)}`;
+}
+
+function buildContinuousRanges(dates: string[]): { start: string; end: string }[] {
+  if (dates.length === 0) return [];
+
+  const result: { start: string; end: string }[] = [];
+  let rangeStart = dates[0];
+  let prev = dates[0];
+
+  dates.slice(1).forEach((cur) => {
+    const diff =
+      (new Date(cur).getTime() - new Date(prev).getTime()) / 86400000;
+
+    if (diff === 1) {
+      prev = cur;
+    } else {
+      result.push({ start: rangeStart, end: prev });
+      rangeStart = cur;
+      prev = cur;
+    }
+  });
+
+  result.push({ start: rangeStart, end: prev });
+  return result;
+}
+
+function rangeIntersectsMonth(start: string, end: string, month: string) {
+  return expandRange(start, end).some((d) => d.startsWith(month));
+}
+
+// ---------- Home Screen ----------
 export default function HomeScreen() {
-  const router = useRouter();
   const [loading, setLoading] = useState(false);
+
   const [markedDates, setMarkedDates] = useState<any>({});
   const [selectedInfo, setSelectedInfo] = useState<SelectedDateInfo | null>(null);
+  const [isManager, setIsManager] = useState(false);
 
   const [ptoRecords, setPtoRecords] = useState<PTORecord[]>([]);
   const [birthdays, setBirthdays] = useState<Employee[]>([]);
   const [holidays, setHolidays] = useState<HolidayRecord[]>([]);
 
-  // Visible month
-  const [currentMonth, setCurrentMonth] = useState<string>(() => {
-    const today = new Date();
-    return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}`;
-  });
-
   const [monthEvents, setMonthEvents] = useState<MonthEvent[]>([]);
 
-  // Load data
+  const [currentMonth, setCurrentMonth] = useState(() => {
+    const t = new Date();
+    return `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, "0")}`;
+  });
+
+  // Animation refs
+  const ptoAnim = useRef(new Animated.Value(0)).current;
+  const nonPtoAnim = useRef(new Animated.Value(0)).current;
+
+  function animateBadge(anim: Animated.Value) {
+    Animated.timing(anim, {
+      toValue: 1,
+      duration: 450,
+      useNativeDriver: true,
+    }).start();
+  }
+
+  // ---------- Load Data ----------
   async function loadCalendarData() {
     setLoading(true);
     try {
-      const { data: ptoData } = await supabase.from("pto_records").select("*");
+      const { data: auth } = await supabase.auth.getUser();
+      const user = auth?.user;
+
+      if (!user) {
+        setIsManager(false);
+        setPtoRecords([]);
+        setBirthdays([]);
+        setHolidays([]);
+        setLoading(false);
+        return;
+      }
+
+      const { data: roleRow } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", user.id)
+        .single();
+
+      setIsManager(roleRow?.role === "manager");
+
+      let ptoQuery = supabase.from("pto_records").select("*");
+      if (roleRow?.role !== "manager") {
+        ptoQuery = ptoQuery.eq("sender_email", user.email);
+      }
+
+      const { data: ptoData } = await ptoQuery;
       setPtoRecords(ptoData || []);
 
       const { data: empData } = await supabase
@@ -80,8 +163,8 @@ export default function HomeScreen() {
 
       const { data: holData } = await supabase.from("holidays").select("*");
       setHolidays(holData || []);
-    } catch (err: any) {
-      Alert.alert("Error loading data", err.message);
+    } catch (e: any) {
+      Alert.alert("Error", e.message);
     } finally {
       setLoading(false);
     }
@@ -91,305 +174,597 @@ export default function HomeScreen() {
     loadCalendarData();
   }, []);
 
+
+    // ---------- PTO RANGES ----------
+  const ptoRanges = useMemo(() => {
+    const byEmp: Record<string, string[]> = {};
+
+    ptoRecords.forEach((p) => {
+      if (p.is_pto === false) return;
+      const key = `${p.employee_id}__${p.employee_name}`;
+      (byEmp[key] ||= []).push(normalizeDate(p.date)!);
+    });
+
+    const result: { employeeId: string; employeeName: string; start: string; end: string }[] = [];
+
+    Object.entries(byEmp).forEach(([key, dates]) => {
+      const [id, name] = key.split("__");
+      const sorted = dates.sort();
+      const ranges = buildContinuousRanges(sorted);
+
+      ranges.forEach((r) =>
+        result.push({ employeeId: id, employeeName: name, start: r.start, end: r.end })
+      );
+    });
+
+    return result;
+  }, [ptoRecords]);
+
+  // ---------- NON PTO RANGES ----------
+  const nonPtoRanges = useMemo(() => {
+    const byEmp: Record<string, string[]> = {};
+
+    ptoRecords.forEach((p) => {
+      if (p.is_pto !== false) return;
+      const key = `${p.employee_id}__${p.employee_name}`;
+      (byEmp[key] ||= []).push(normalizeDate(p.date)!);
+    });
+
+    const result: { employeeId: string; employeeName: string; start: string; end: string }[] = [];
+
+    Object.entries(byEmp).forEach(([key, dates]) => {
+      const [id, name] = key.split("__");
+      const sorted = dates.sort();
+      const ranges = buildContinuousRanges(sorted);
+
+      ranges.forEach((r) =>
+        result.push({ employeeId: id, employeeName: name, start: r.start, end: r.end })
+      );
+    });
+
+    return result;
+  }, [ptoRecords]);
+
+  // ---------- Mark Calendar ----------
   useEffect(() => {
-    const marks: any = {};
-    const currentYear = new Date().getFullYear();
+    const marks: Record<string, any> = {};
+    const year = new Date().getFullYear();
 
     function addDot(date: string, color: string) {
-      if (!marks[date]) marks[date] = { dots: [] };
-      if (marks[date].dots.length < 3) {
-        marks[date].dots.push({ color });
-      }
+      (marks[date] ||= { dots: [] }).dots.push({ color });
     }
 
-    // PTO dots
-    ptoRecords.forEach((p) => {
-      addDot(p.date, "green");
-    });
+    ptoRanges.forEach((r) =>
+      expandRange(r.start, r.end).forEach((d) => addDot(d, "green"))
+    );
 
-    // Birthday dots (converted to current year)
+    nonPtoRanges.forEach((r) =>
+      expandRange(r.start, r.end).forEach((d) => addDot(d, "purple"))
+    );
+
     birthdays.forEach((b) => {
       const clean = normalizeDate(b.birthday);
-      if (!clean) return;
-      const [, mm, dd] = clean.split("-");
-      const birthdayDate = `${currentYear}-${mm}-${dd}`;
-      addDot(birthdayDate, "yellow");
+      if (clean) {
+        const [, mm, dd] = clean.split("-");
+        addDot(`${year}-${mm}-${dd}`, "yellow");
+      }
     });
 
-    // Holiday dots
-    holidays.forEach((h) => {
-      addDot(h.holiday_date, "orange");
-    });
+    holidays.forEach((h) => addDot(h.holiday_date, "orange"));
 
     setMarkedDates(marks);
-  }, [ptoRecords, birthdays, holidays]);
+  }, [ptoRanges, nonPtoRanges, birthdays, holidays]);
 
-  // 🔥 BUILD MONTH EVENTS (Birthdays converted to current year)
+  // ---------- MONTH EVENTS (only Holidays + Birthdays) ----------
   useEffect(() => {
     const events: MonthEvent[] = [];
     const [year, month] = currentMonth.split("-");
-    const currentYear = Number(year);
 
-    // PTO
-    ptoRecords.forEach((p, idx) => {
-      if (p.date.startsWith(currentMonth)) {
-        events.push({
-          id: `pto-${p.id}`,
-          date: p.date,
-          type: "PTO",
-          title: p.employee_name ? `PTO - ${p.employee_name}` : `PTO - ${p.employee_id}`,
-          description: `${p.hours} hours - ${p.activity}`,
-        });
-      }
-    });
-
-    // Birthday events (repeat yearly)
     birthdays.forEach((b) => {
       const clean = normalizeDate(b.birthday);
       if (!clean) return;
-
       const [, mm, dd] = clean.split("-");
       if (mm === month) {
-        const birthdayDate = `${currentYear}-${mm}-${dd}`;
+        const date = `${year}-${mm}-${dd}`;
         events.push({
-          id: `birthday-${b.id}`,
-          date: birthdayDate,
+          id: `bday-${b.id}`,
+          sortDate: date,
+          displayDate: formatPretty(date),
           type: "Birthday",
-          title: `Birthday - ${b.name}`,
+          title: `Birthday – ${b.name}`,
         });
       }
     });
 
-    // Holidays
+    // group holidays
+    const holMap: Record<string, { dates: string[]; desc?: string }> = {};
     holidays.forEach((h) => {
-      if (h.holiday_date.startsWith(currentMonth)) {
-        events.push({
-          id: `holiday-${h.id}`,
-          date: h.holiday_date,
-          type: "Holiday",
-          title: h.holiday,
-          description: h.holiday_description || undefined,
-        });
-      }
+      if (!h.holiday_date.startsWith(currentMonth)) return;
+      (holMap[h.holiday] ||= { dates: [], desc: h.holiday_description }).dates.push(
+        h.holiday_date
+      );
     });
 
-    // Sort by date
-    events.sort((a, b) => a.date.localeCompare(b.date));
-    setMonthEvents(events);
-  }, [currentMonth, ptoRecords, birthdays, holidays]);
+    Object.entries(holMap).forEach(([name, group]) => {
+      const sorted = group.dates.sort();
+      const ranges = buildContinuousRanges(sorted);
 
-  // DAY PRESS HANDLER (MODAL)
-  const handleDayPress = (day: any) => {
-    const clickedDate = day.dateString;
-    const currentYear = new Date().getFullYear();
+      ranges.forEach((r, i) =>
+        events.push({
+          id: `hol-${name}-${i}`,
+          sortDate: r.start,
+          displayDate: formatRangePretty(r.start, r.end),
+          type: "Holiday",
+          title: name,
+          description: group.desc,
+        })
+      );
+    });
+
+    events.sort((a, b) => a.sortDate.localeCompare(b.sortDate));
+    setMonthEvents(events);
+  }, [birthdays, holidays, currentMonth]);
+
+  // ---------- PTO TABLE (Approved + Pending only) ----------
+  const ptoTable = useMemo(() => {
+    const rows: {
+      name: string;
+      ranges: { start: string; end: string; status: string }[];
+    }[] = [];
+
+    const byEmp: Record<string, { name: string; items: { date: string; status: string }[] }> = {};
+
+    ptoRecords.forEach((p) => {
+      if (p.is_pto === false) return;
+
+      // ❌ Skip rejected leaves entirely
+      if (p.status?.toLowerCase() === "rejected") return;
+
+      const date = normalizeDate(p.date);
+      if (!date) return;
+
+      const key = `${p.employee_id}__${p.employee_name}`;
+      (byEmp[key] ||= { name: p.employee_name, items: [] }).items.push({
+        date,
+        status: p.status?.toLowerCase() === "approved" ? "Approved" : "Pending",
+      });
+    });
+
+    Object.values(byEmp).forEach((emp) => {
+      const sorted = emp.items.sort((a, b) => a.date.localeCompare(b.date));
+      const dates = sorted.map((x) => x.date);
+      const ranges = buildContinuousRanges(dates);
+
+      const finalRanges = ranges
+        .map((r) => {
+          const statuses = sorted
+            .filter((x) => x.date >= r.start && x.date <= r.end)
+            .map((x) => x.status);
+
+          const status = statuses.includes("Pending") ? "Pending" : "Approved";
+          return { start: r.start, end: r.end, status };
+        })
+        .filter((r) => rangeIntersectsMonth(r.start, r.end, currentMonth));
+
+      if (finalRanges.length) rows.push({ name: emp.name, ranges: finalRanges });
+    });
+
+    if (rows.length) animateBadge(ptoAnim);
+
+    return rows;
+  }, [ptoRecords, currentMonth]);
+
+  // ---------- NON PTO TABLE (Approved + Pending only) ----------
+  const nonPtoTable = useMemo(() => {
+    const rows: {
+      name: string;
+      ranges: { start: string; end: string; status: string }[];
+    }[] = [];
+
+    const byEmp: Record<string, { name: string; items: { date: string; status: string }[] }> = {};
+
+    ptoRecords.forEach((p) => {
+      if (p.is_pto !== false) return;
+
+      // ❌ Skip rejected leaves entirely
+      if (p.status?.toLowerCase() === "rejected") return;
+
+      const date = normalizeDate(p.date);
+      if (!date) return;
+
+      const key = `${p.employee_id}__${p.employee_name}`;
+      (byEmp[key] ||= { name: p.employee_name, items: [] }).items.push({
+        date,
+        status: p.status?.toLowerCase() === "approved" ? "Approved" : "Pending",
+      });
+    });
+
+    Object.values(byEmp).forEach((emp) => {
+      const sorted = emp.items.sort((a, b) => a.date.localeCompare(b.date));
+      const dates = sorted.map((x) => x.date);
+      const ranges = buildContinuousRanges(dates);
+
+      const finalRanges = ranges
+        .map((r) => {
+          const statuses = sorted
+            .filter((x) => x.date >= r.start && x.date <= r.end)
+            .map((x) => x.status);
+
+          const status = statuses.includes("Pending") ? "Pending" : "Approved";
+          return { start: r.start, end: r.end, status };
+        })
+        .filter((r) => rangeIntersectsMonth(r.start, r.end, currentMonth));
+
+      if (finalRanges.length) rows.push({ name: emp.name, ranges: finalRanges });
+    });
+
+    if (rows.length) animateBadge(nonPtoAnim);
+
+    return rows;
+  }, [ptoRecords, currentMonth]);
+
+  // ---------- Day Select ----------
+  function onDaySelect(day: { dateString: string }) {
+    const clicked = day.dateString;
+    const year = new Date().getFullYear();
+
+    const ptoForDay = ptoRecords.filter(
+      (p) => normalizeDate(p.date) === clicked
+    );
 
     const selected: SelectedDateInfo = {
-      date: new Date(clickedDate),
-
-      // PTO
-      ptoRecords: ptoRecords.filter((p) => p.date === clickedDate),
-
-      // Birthday (map to current year)
+      date: new Date(clicked),
+      ptoRecords: ptoForDay,
       birthdays: birthdays.filter((b) => {
-        const clean = normalizeDate(b.birthday);
-        if (!clean) return false;
-        const [, mm, dd] = clean.split("-");
-        const dateThisYear = `${currentYear}-${mm}-${dd}`;
-        return dateThisYear === clickedDate;
+        const d = normalizeDate(b.birthday);
+        if (!d) return false;
+        const [, mm, dd] = d.split("-");
+        return `${year}-${mm}-${dd}` === clicked;
       }),
-
-      // Holiday
-      holidays: holidays.filter((h) => h.holiday_date === clickedDate),
+      holidays: holidays.filter((h) => h.holiday_date === clicked),
     };
 
     setSelectedInfo(selected);
-  };
+  }
 
+  // ---------- UI ----------
   return (
-    <View style={styles.container}>
+    <View style={styles.root}>
       {loading && <LoadingOverlay />}
 
-      {/* Simple Header */}
-      <View style={styles.simpleHeader}>
-        <Text style={styles.simpleHeaderTitle}>DataClad</Text>
+      {/* HEADER */}
+      <View style={styles.header}>
+        <Text style={styles.headerTitle}>DataClad Dashboard</Text>
       </View>
 
-      {/* Calendar */}
-      <View style={styles.calendarCard}>
-        <Calendar
-          markingType="multi-dot"
-          markedDates={markedDates}
-          onDayPress={handleDayPress}
-          onMonthChange={(m) => {
-            const mm = String(m.month).padStart(2, "0");
-            setCurrentMonth(`${m.year}-${mm}`);
-          }}
-          style={styles.calendar}
-          renderHeader={(date) => (
-            <Text
-              style={{
-                fontSize: 16,
-                fontWeight: "600",
-                color: "#0F172A",
-                paddingVertical: 6,
-                textAlign: "center",
-              }}
-            >
-              {date.toString("MMMM yyyy")}
-            </Text>
+      <ScrollView contentContainerStyle={{ paddingBottom: 120 }}>
+        {/* Calendar */}
+        <View style={styles.card}>
+          <Calendar
+            markingType="multi-dot"
+            markedDates={markedDates}
+            onDayPress={onDaySelect}
+            onMonthChange={(m) => {
+              const mm = String(m.month).padStart(2, "0");
+              setCurrentMonth(`${m.year}-${mm}`);
+            }}
+            style={styles.calendar}
+            renderHeader={(date) => (
+              <Text style={styles.calendarHeaderText}>
+                {date.toString("MMMM yyyy")}
+              </Text>
+            )}
+            theme={{
+              todayTextColor: "#0A1A4F",
+              arrowColor: "#0A1A4F",
+            }}
+          />
+        </View>
+
+        {/* EVENTS */}
+        <View style={styles.headerRow}>
+          <Text style={styles.sectionTitle}>Upcoming Events</Text>
+        </View>
+        <View style={styles.card}>
+          {monthEvents.length === 0 ? (
+            <Text style={styles.emptyText}>No events this month.</Text>
+          ) : (
+            monthEvents.map((ev: MonthEvent) => (
+              <View key={ev.id} style={styles.eventRow}>
+                <Text style={styles.eventDate}>{ev.displayDate}</Text>
+                <View style={{ flex: 1 }}>
+                  <Text
+                    style={[
+                      styles.badge,
+                      ev.type === "Birthday"
+                        ? styles.badgeBirthday
+                        : styles.badgeHoliday,
+                    ]}
+                  >
+                    {ev.type}
+                  </Text>
+                  <Text style={styles.eventTitle}>{ev.title}</Text>
+                  {ev.description && (
+                    <Text style={styles.eventDesc}>{ev.description}</Text>
+                  )}
+                </View>
+              </View>
+            ))
           )}
-          theme={{
-            todayTextColor: "#1E3A8A",
-            arrowColor: "#1E40AF",
-          }}
-        />
-      </View>
+        </View>
 
-      {/* Modal */}
+        {/* PTO HEADER */}
+        <View style={styles.headerRow}>
+          <Text style={styles.sectionTitle}>Paid Time Offs</Text>
+          {ptoTable.length > 0 && (
+            <Animated.View
+              style={[
+                styles.pillBadge,
+                styles.pillPto,
+                {
+                  opacity: ptoAnim,
+                  transform: [
+                    {
+                      scale: ptoAnim.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [0.7, 1],
+                      }),
+                    },
+                  ],
+                },
+              ]}
+            >
+              <Ionicons
+                name="checkmark-circle-outline"
+                size={16}
+                color="white"
+              />
+              <Text style={styles.pillText}>PTO</Text>
+            </Animated.View>
+          )}
+        </View>
+
+        <View style={styles.card}>
+          {ptoTable.length === 0 ? (
+            <Text style={styles.emptyText}>No PTO records.</Text>
+          ) : (
+            ptoTable.map((emp) => (
+              <View key={emp.name} style={styles.ptoBlock}>
+                <Text style={styles.ptoName}>{emp.name}</Text>
+
+                {emp.ranges.map((range, idx) => (
+                  <Text key={idx} style={styles.ptoRange}>
+                    • {formatRangePretty(range.start, range.end)}{" "}
+                    <Text
+                      style={
+                        range.status === "Approved"
+                          ? styles.statusApproved
+                          : styles.statusPending
+                      }
+                    >
+                      ({range.status})
+                    </Text>
+                  </Text>
+                ))}
+              </View>
+            ))
+          )}
+        </View>
+
+        {/* NON PTO HEADER */}
+        <View style={styles.headerRow}>
+          <Text style={styles.sectionTitle}>Non PTO Leaves</Text>
+          {nonPtoTable.length > 0 && (
+            <Animated.View
+              style={[
+                styles.pillBadge,
+                styles.pillNonPto,
+                {
+                  opacity: nonPtoAnim,
+                  transform: [
+                    {
+                      scale: nonPtoAnim.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [0.7, 1],
+                      }),
+                    },
+                  ],
+                },
+              ]}
+            >
+              <Ionicons name="alert-circle-outline" size={16} color="white" />
+              <Text style={styles.pillText}>Non-PTO</Text>
+            </Animated.View>
+          )}
+        </View>
+
+        <View style={styles.card}>
+          {nonPtoTable.length === 0 ? (
+            <Text style={styles.emptyText}>No non-PTO leave records.</Text>
+          ) : (
+            nonPtoTable.map((emp) => (
+              <View key={emp.name} style={styles.ptoBlock}>
+                <Text style={styles.ptoName}>{emp.name}</Text>
+
+                {emp.ranges.map((range, idx) => (
+                  <Text key={idx} style={styles.ptoRange}>
+                    • {formatRangePretty(range.start, range.end)}{" "}
+                    <Text
+                      style={
+                        range.status === "Approved"
+                          ? styles.statusApproved
+                          : styles.statusPending
+                      }
+                    >
+                      ({range.status})
+                    </Text>
+                  </Text>
+                ))}
+              </View>
+            ))
+          )}
+        </View>
+      </ScrollView>
+
       <DateDetailsModal
         selectedDate={selectedInfo}
         onClose={() => setSelectedInfo(null)}
       />
-
-      {/* Events */}
-
-      <Text style={styles.monthHeader}>Events</Text>
-
-      <ScrollView style={styles.eventsContainer}>
-        {monthEvents.length === 0 ? (
-          <Text style={styles.noEventsText}>No events this month.</Text>
-        ) : (
-          monthEvents.map((ev) => (
-            <View key={ev.id} style={styles.eventRow}>
-              <View style={styles.eventDateCol}>
-                <Text style={styles.eventDateText}>
-                  {formatPrettyDate(ev.date)}
-                </Text>
-              </View>
-
-              <View style={styles.eventDetailCol}>
-                <Text
-                  style={[
-                    styles.eventTypePill,
-                    ev.type === "PTO"
-                      ? styles.ptoPill
-                      : ev.type === "Birthday"
-                      ? styles.birthdayPill
-                      : styles.holidayPill,
-                  ]}
-                >
-                  {ev.type}
-                </Text>
-
-                <View style={styles.eventTextWrapper}>
-                  <Text style={styles.eventTitle}>{ev.title}</Text>
-                  {ev.description && (
-                    <Text style={styles.eventDesc}> • {ev.description}</Text>
-                  )}
-                </View>
-              </View>
-            </View>
-          ))
-        )}
-      </ScrollView>
     </View>
   );
 }
 
+// ---------- Styles ----------
 const styles = StyleSheet.create({
-  container: {
+  root: {
     flex: 1,
-    backgroundColor: "#F8FAFC",
+    backgroundColor: "#F3F4F6",
   },
-  simpleHeader: {
-    paddingTop: 55,
-    paddingBottom: 15,
-    paddingHorizontal: 20,
-    alignItems: "center",
-    justifyContent: "center",
 
+  header: {
+    paddingTop: 55,
+    paddingBottom: 20,
+    backgroundColor: "#0A1A4F",
+    alignItems: "center",
+    marginBottom: 10,
   },
-  simpleHeaderTitle: {
+
+  headerTitle: {
     fontSize: 26,
     fontWeight: "700",
-    color: "#0F172A",
+    color: "white",
+  },
+
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: "700",
+    color: "#0A1A4F",
+  },
+
+  headerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginLeft: 16,
+    marginTop: 10,
+    marginBottom: 6,
+    gap: 10,
+  },
+
+  // Pill Badges
+  pillBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderRadius: 50,
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    gap: 6,
+  },
+
+  pillPto: {
+    backgroundColor: "#22C55E",
+  },
+
+  pillNonPto: {
+    backgroundColor: "purple",
+  },
+
+  pillText: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: "white",
+  },
+
+  card: {
+    marginHorizontal: 16,
+    backgroundColor: "white",
+    borderRadius: 16,
+    padding: 15,
+    marginBottom: 16,
+  },
+
+  calendar: {
+    borderRadius: 16,
+    backgroundColor: "#fff",
+  },
+
+  calendarHeaderText: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#0A1A4F",
+    paddingVertical: 6,
     textAlign: "center",
   },
 
-  calendarCard: {
-    marginTop: 10,
-    marginHorizontal: 15,
-    backgroundColor: "white",
-    borderRadius: 18,
-    padding: 10,
-    shadowColor: "#000",
-    shadowOpacity: 0.05,
-    shadowOffset: { width: 0, height: 3 },
-    shadowRadius: 4,
-    elevation: 3,
-    marginBottom: 20,
-  },
-  calendar: {
-    borderRadius: 15,
-  },
-  monthHeader: {
-    fontSize: 20,
-    fontWeight: "700",
-    paddingHorizontal: 20,
-    marginBottom: 10,
-    color: "#0F172A",
-  },
-  eventsContainer: {
-    flex: 1,
-    paddingHorizontal: 20,
-  },
-  noEventsText: {
-    fontSize: 15,
-    color: "#6B7280",
-    marginTop: 10,
+  emptyText: {
     textAlign: "center",
+    paddingVertical: 10,
+    color: "#6B7280",
   },
+
   eventRow: {
     flexDirection: "row",
-    paddingVertical: 15,
+    paddingVertical: 10,
     borderBottomWidth: 1,
-    borderBottomColor: "#E2E8F0",
+    borderColor: "#E5E7EB",
+    gap: 10,
   },
-  eventDateCol: {
-    width: 110,
-  },
-  eventDateText: {
+
+  eventDate: {
+    width: 100,
     fontWeight: "700",
-    color: "#1E293B",
-    fontSize: 15,
+    color: "#111827",
   },
-  eventDetailCol: {
-    flex: 1,
-  },
-  eventTextWrapper: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-  },
-  eventTypePill: {
+
+  badge: {
     alignSelf: "flex-start",
     paddingHorizontal: 10,
     paddingVertical: 4,
-    borderRadius: 50,
-    fontSize: 11,
-    fontWeight: "700",
+    borderRadius: 20,
     color: "white",
-    marginBottom: 6,
+    fontWeight: "700",
+    fontSize: 11,
+    marginBottom: 4,
   },
-  ptoPill: { backgroundColor: "#22C55E" },
-  birthdayPill: { backgroundColor: "#EAB308" },
-  holidayPill: { backgroundColor: "#F97316" },
+
+  badgeBirthday: { backgroundColor: "#EAB308" },
+  badgeHoliday: { backgroundColor: "#F97316" },
+
   eventTitle: {
     fontSize: 16,
     fontWeight: "700",
     color: "#0F172A",
   },
+
   eventDesc: {
-    fontSize: 15,
+    fontSize: 14,
     color: "#475569",
+  },
+
+  ptoBlock: {
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderColor: "#E5E7EB",
+  },
+
+  ptoName: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#0A1A4F",
+    marginBottom: 4,
+  },
+
+  ptoRange: {
+    fontSize: 14,
+    color: "#374151",
+  },
+
+  statusApproved: {
+    color: "#16A34A",
+    fontWeight: "600",
+  },
+
+  statusPending: {
+    color: "#F97316",
+    fontWeight: "600",
   },
 });

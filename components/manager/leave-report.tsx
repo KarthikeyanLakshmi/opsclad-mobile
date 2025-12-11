@@ -340,6 +340,8 @@ tabText: {
 
 row: {
     flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 10,
     gap: 10,
   },
     backButton: {

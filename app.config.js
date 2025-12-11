@@ -12,6 +12,13 @@ export default {
     newArchEnabled: true,
     platforms: ["android", "ios"],
 
+    "resolutions": {
+    "react-native-safe-area-context": "5.6.2"
+    },
+    "scripts": {
+    "preinstall": "npx npm-force-resolutions"
+    },
+
     ios: {
       supportsTablet: true
     },
