@@ -340,25 +340,28 @@ export default function ReportsScreen() {
                   </View>
                 </View>
 
-                {/* DETAILS */}
+                {/* DETAILS — ICON ONLY */}
+
                 <View style={styles.resultRow}>
-                  <Text style={styles.resultLabel}>👤 Employee</Text>
+                  <Text style={styles.iconOnly}>👤</Text>
                   <Text style={styles.resultValue}>{d.employee_name}</Text>
                 </View>
 
                 <View style={styles.resultRow}>
-                  <Text style={styles.resultLabel}>🏢 Client</Text>
+                  <Text style={styles.iconOnly}>🏢</Text>
                   <Text style={styles.resultValue}>{d.client || "-"}</Text>
                 </View>
 
                 <View style={styles.resultRow}>
-                  <Text style={styles.resultLabel}>📁 Project</Text>
+                  <Text style={styles.iconOnly}>📁</Text>
                   <Text style={styles.resultValue}>{d.project || "-"}</Text>
                 </View>
 
-                <View style={styles.hoursBadge}>
-                  <Text style={styles.hoursText}>{d.hours} hours</Text>
+                <View style={styles.resultRow}>
+                  <Text style={styles.iconOnly}>⏱</Text>
+                  <Text style={styles.resultValue}>{d.hours}</Text>
                 </View>
+
               </View>
             ))}
           </View>
@@ -608,6 +611,11 @@ hoursText: {
   color: "white",
   fontWeight: "700",
   fontSize: 12,
+},
+
+iconOnly: {
+  fontSize: 16,
+  marginRight: 6,
 },
 
 });

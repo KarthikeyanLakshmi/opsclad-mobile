@@ -395,20 +395,21 @@ export default function EmployeeReportsScreen() {
                 </View>
               </View>
 
-              {/* DETAILS */}
               <View style={styles.resultRow}>
-                <Text style={styles.resultLabel}>🏢 Client:</Text>
+                <Text style={styles.iconOnly}>🏢</Text>
                 <Text style={styles.resultValue}>{d.client || "-"}</Text>
               </View>
 
               <View style={styles.resultRow}>
-                <Text style={styles.resultLabel}>📁 Project:</Text>
+                <Text style={styles.iconOnly}>📁</Text>
                 <Text style={styles.resultValue}>{d.project || "-"}</Text>
               </View>
 
-              <View style={styles.hoursBadge}>
-                <Text style={styles.hoursText}>{d.hours} hours</Text>
+              <View style={styles.resultRow}>
+                <Text style={styles.iconOnly}>⏱</Text>
+                <Text style={styles.resultValue}>{d.hours}</Text>
               </View>
+
             </View>
           ))}
         </View>
@@ -609,4 +610,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   loadingText: { marginTop: 10, color: "#111" },
+  
+  iconOnly: {
+  fontSize: 16,
+  marginRight: 6,
+},
 });
