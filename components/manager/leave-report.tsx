@@ -14,11 +14,11 @@ import { Picker } from "@react-native-picker/picker";
 import { supabase } from "@/src/lib/supabase";
 import { Feather } from "@expo/vector-icons";
 
-
 export default function LeaveReport() {
-    const router = useRouter();
+  const router = useRouter();
+
   const [records, setRecords] = useState<any[]>([]);
-  const [carryRequests, setCarryRequests] = useState<any[]>([]);
+  const [carryRequests, setCarryRequests] = useState<any[]>([]); // reserved for future use
   const [loading, setLoading] = useState(true);
 
   const [activeTab, setActiveTab] = useState<"overview" | "approvals">(
@@ -34,9 +34,7 @@ export default function LeaveReport() {
 
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
 
-  // ---------------------------
-  // Load PTO Records
-  // ---------------------------
+  /* ---------------- LOAD PTO RECORDS ---------------- */
   const loadRecords = async () => {
     try {
       setLoading(true);
@@ -48,18 +46,22 @@ export default function LeaveReport() {
         .lte("date", `${selectedYear}-12-31`)
         .order("date", { ascending: false });
 
-      if (error) console.error(error);
+      if (error) {
+        console.error(error);
+        Alert.alert("Error", "Failed to load leave records.");
+      }
+
       setRecords(data || []);
     } finally {
       setLoading(false);
     }
   };
 
-  // ---------------------------
-  // Load Carry Forward Requests
-  // ---------------------------
+  /* ---------------- LOAD CARRY FORWARD REQUESTS ---------------- */
   const loadCarryRequests = async () => {
-    const { data } = await supabase.from("carry_forward_requests").select("*");
+    const { data } = await supabase
+      .from("carry_forward_requests")
+      .select("*");
     setCarryRequests(data || []);
   };
 
@@ -69,9 +71,7 @@ export default function LeaveReport() {
     setActiveTab("overview");
   }, [selectedYear]);
 
-  // ---------------------------
-  // Filters
-  // ---------------------------
+  /* ---------------- FILTERS ---------------- */
   const employees = [...new Set(records.map((x) => x.employee_name))];
 
   const filteredRecords = records.filter((r) => {
@@ -82,9 +82,7 @@ export default function LeaveReport() {
     return true;
   });
 
-  // ---------------------------
-  // Approve / Reject logic
-  // ---------------------------
+  /* ---------------- APPROVAL HANDLERS ---------------- */
   const handleApproval = async (id: string, action: "approve" | "reject") => {
     const newStatus = action === "approve" ? "approved" : "rejected";
 
@@ -102,58 +100,71 @@ export default function LeaveReport() {
     loadRecords();
   };
 
+  /* ---------------- RENDER ---------------- */
   return (
     <ScrollView style={styles.container}>
-    <View style={{ flex: 1, paddingTop: 100 }}>
-        
-      {/* ---------------- HEADER ---------------- */}
-        <View style={styles.row}>
-        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+      {/* HEADER */}
+      <View style={styles.row}>
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => router.back()}
+        >
           <Feather name="arrow-left" size={22} color="#111" />
         </TouchableOpacity>
         <Text style={styles.title}>Leave Report</Text>
-        </View>
-      {/* ---------------- TABS ---------------- */}
+      </View>
+
+      {/* TABS */}
       <View style={styles.tabs}>
         <TouchableOpacity
-        style={[styles.tab, activeTab === "overview" && styles.activeTab]}
-        onPress={() => setActiveTab("overview")}
+          style={[styles.tab, activeTab === "overview" && styles.activeTab]}
+          onPress={() => setActiveTab("overview")}
         >
-        <Text style={activeTab === "overview" ? styles.activeTabText : styles.tabText}>
+          <Text
+            style={
+              activeTab === "overview"
+                ? styles.activeTabText
+                : styles.tabText
+            }
+          >
             Overview
-        </Text>
+          </Text>
         </TouchableOpacity>
 
         <TouchableOpacity
           style={[styles.tab, activeTab === "approvals" && styles.activeTab]}
           onPress={() => setActiveTab("approvals")}
         >
-        <Text style={activeTab === "approvals" ? styles.activeTabText : styles.tabText}>
+          <Text
+            style={
+              activeTab === "approvals"
+                ? styles.activeTabText
+                : styles.tabText
+            }
+          >
             Approvals
-        </Text>        
+          </Text>
         </TouchableOpacity>
       </View>
 
       {/* ---------------- OVERVIEW TAB ---------------- */}
       {activeTab === "overview" && (
-        <View style={{ marginTop: 20 }}>
-          {/* Filters */}
+        <View>
           <Text style={styles.sectionTitle}>Filters</Text>
 
-          {/* Employee filter */}
           <View style={styles.filterBox}>
             <Picker
               selectedValue={filterEmployee}
               onValueChange={(v) => setFilterEmployee(v)}
             >
               <Picker.Item label="All Employees" value="all" />
-              {employees.map((e) => (
-                <Picker.Item key={e} label={e} value={e} />
+              {employees.map((e, idx) => (
+                <Picker.Item key={`${e}-${idx}`} label={e} value={e} />
               ))}
             </Picker>
           </View>
 
-          {/* From Date */}
+          {/* FROM DATE */}
           <TouchableOpacity
             style={styles.dateBox}
             onPress={() => setShowFromPicker(true)}
@@ -163,7 +174,7 @@ export default function LeaveReport() {
 
           {showFromPicker && (
             <DateTimePicker
-              value={new Date()}
+              value={dateFrom ? new Date(dateFrom) : new Date()}
               mode="date"
               onChange={(_, d) => {
                 setShowFromPicker(false);
@@ -172,7 +183,7 @@ export default function LeaveReport() {
             />
           )}
 
-          {/* To Date */}
+          {/* TO DATE */}
           <TouchableOpacity
             style={styles.dateBox}
             onPress={() => setShowToPicker(true)}
@@ -182,7 +193,7 @@ export default function LeaveReport() {
 
           {showToPicker && (
             <DateTimePicker
-              value={new Date()}
+              value={dateTo ? new Date(dateTo) : new Date()}
               mode="date"
               onChange={(_, d) => {
                 setShowToPicker(false);
@@ -191,7 +202,6 @@ export default function LeaveReport() {
             />
           )}
 
-          {/* Records */}
           <Text style={styles.sectionTitle}>Leave Records</Text>
 
           {loading ? (
@@ -215,7 +225,7 @@ export default function LeaveReport() {
 
       {/* ---------------- APPROVALS TAB ---------------- */}
       {activeTab === "approvals" && (
-        <View style={{ marginTop: 20 }}>
+        <View>
           <Text style={styles.sectionTitle}>Pending Approvals</Text>
 
           {records.filter((x) => x.status === "pending").length === 0 ? (
@@ -249,16 +259,41 @@ export default function LeaveReport() {
           )}
         </View>
       )}
-    </View>
     </ScrollView>
   );
 }
 
+/* ---------------- STYLES ---------------- */
 const styles = StyleSheet.create({
-  container: { backgroundColor: "#f6f6f6", padding: 12 },
-  title: { fontSize: 22, fontWeight: "700", color: "#0A1A4F", marginBottom: 10 },
+  container: {
+    backgroundColor: "#f6f6f6",
+    padding: 12,
+    paddingTop: 60,
+  },
 
-  tabs: { flexDirection: "row", gap: 8, marginBottom: 12 },
+  title: {
+    fontSize: 22,
+    fontWeight: "700",
+    color: "#0A1A4F",
+  },
+
+  row: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    marginBottom: 10,
+  },
+
+  backButton: {
+    padding: 6,
+  },
+
+  tabs: {
+    flexDirection: "row",
+    gap: 8,
+    marginBottom: 12,
+  },
+
   tab: {
     flex: 1,
     paddingVertical: 10,
@@ -266,18 +301,24 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     alignItems: "center",
   },
+
   activeTab: { backgroundColor: "#0A1A4F" },
 
-activeTabText: {
+  activeTabText: {
     color: "#fff",
     fontWeight: "700",
-    },
-tabText: {
+  },
+
+  tabText: {
     color: "#000",
     fontWeight: "600",
-    },
+  },
 
-  sectionTitle: { fontSize: 18, marginVertical: 10, fontWeight: "600" },
+  sectionTitle: {
+    fontSize: 18,
+    marginVertical: 10,
+    fontWeight: "600",
+  },
 
   filterBox: {
     borderWidth: 1,
@@ -304,7 +345,11 @@ tabText: {
     borderWidth: 1,
     borderColor: "#ddd",
   },
-  recordTitle: { fontWeight: "700", marginBottom: 4 },
+
+  recordTitle: {
+    fontWeight: "700",
+    marginBottom: 4,
+  },
 
   noData: {
     color: "#777",
@@ -334,19 +379,12 @@ tabText: {
     alignItems: "center",
     marginHorizontal: 4,
   },
+
   approve: { backgroundColor: "#10b981" },
   reject: { backgroundColor: "#ef4444" },
-  btnText: { color: "#fff", fontWeight: "700" },
 
-row: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 10,
-    gap: 10,
-  },
-    backButton: {
-    marginBottom: 10,
-    alignSelf: "flex-start",
-    padding: 6,
+  btnText: {
+    color: "#fff",
+    fontWeight: "700",
   },
 });
