@@ -46,8 +46,7 @@ export default function EmployeeSkillTracker() {
         .from("profiles")
         .select("*")
         .eq("id", userData.user.id)
-        .single();
-
+        .maybeSingle()
       setUserProfile(profileData);
     } catch (err) {
       console.error(err);

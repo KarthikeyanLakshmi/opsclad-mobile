@@ -21,22 +21,19 @@ export default function ProfileScreen() {
         .from("profiles")
         .select("*")
         .eq("id", userId)
-        .single();
-
+        .maybeSingle()
       // Load role
       const { data: roleData } = await supabase
         .from("user_roles")
         .select("role")
         .eq("user_id", userId)
-        .single();
-
+        .maybeSingle()
       // Load birthday from employees table
       const { data: employeeData } = await supabase
         .from("employees")
         .select("birthday")
         .eq("employee_id", profileData.employee_id)
-        .single();
-
+        .maybeSingle()
       setProfile({
         ...profileData,
         birthday: employeeData?.birthday ?? null,
