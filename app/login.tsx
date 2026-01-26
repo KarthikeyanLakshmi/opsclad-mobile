@@ -64,11 +64,12 @@ export default function LoginScreen() {
         onPress={handleLogin}
         disabled={loading}
       />
-      {/*<TouchableOpacity onPress={() => router.push("/resetPassword")}>
+      
+      <TouchableOpacity onPress={() => router.push("/resetPassword")}>
         <Text style={{ color: "#f97316", marginTop: 14 }}>
           Forgot Password?
         </Text>
-      </TouchableOpacity>*/}
+      </TouchableOpacity>
     </View>
   );
 }
