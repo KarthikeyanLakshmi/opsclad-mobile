@@ -6,6 +6,7 @@ import {
   Alert,
   ScrollView,
   Animated,
+  TouchableOpacity,
 } from "react-native";
 import { Calendar } from "react-native-calendars";
 import { Ionicons } from "@expo/vector-icons";
@@ -111,6 +112,9 @@ export default function HomeScreen() {
     const t = new Date();
     return `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, "0")}`;
   });
+
+  const [activeTab, setActiveTab] =
+  useState<"announcements" | "calendar">("announcements")
 
   // Animation refs
   const ptoAnim = useRef(new Animated.Value(0)).current;
@@ -436,6 +440,43 @@ export default function HomeScreen() {
       <View style={styles.header}>
         <Text style={styles.headerTitle}>DataClad Dashboard</Text>
       </View>
+
+      <View style={styles.tabs}>
+        <TouchableOpacity
+          onPress={() => setActiveTab("announcements")}
+          style={[
+            styles.tab,
+            activeTab === "announcements" && styles.activeTab,
+          ]}
+        >
+          <Text
+            style={[
+              styles.tabText,
+              activeTab === "announcements" && styles.tabTextActive,
+            ]}
+          >
+            Announcements
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          onPress={() => setActiveTab("calendar")}
+          style={[
+            styles.tab,
+            activeTab === "calendar" && styles.activeTab,
+          ]}
+        >
+          <Text
+            style={[
+              styles.tabText,
+              activeTab === "calendar" && styles.tabTextActive,
+            ]}
+          >
+            Calendar
+          </Text>
+        </TouchableOpacity>
+      </View>
+
 
       <ScrollView contentContainerStyle={{ paddingBottom: 120 }}>
         {/* Calendar */}
@@ -767,4 +808,32 @@ const styles = StyleSheet.create({
     color: "#F97316",
     fontWeight: "600",
   },
+
+  tabs: {
+    flexDirection: "row",
+    backgroundColor: "#e5e7eb",
+    borderRadius: 20,
+    padding: 4,
+    marginBottom: 10,
+  },
+  tab: {
+    flex: 1,
+    paddingVertical: 6,
+    alignItems: "center",
+    borderRadius: 20,
+  },
+  activeTab: {
+    backgroundColor: "#ffffff",
+  },
+  tabText: {
+    fontSize: 12,
+    color: "#6b7280",
+    fontWeight: "500",
+  },
+  tabTextActive: {
+    color: "#111827",
+    fontWeight: "700",
+  },
+
 });
+
