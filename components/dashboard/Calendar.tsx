@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -10,12 +10,14 @@ import {
   TouchableOpacity,
 } from "react-native";
 import { Calendar } from "react-native-calendars";
-import { supabase } from "../../../src/lib/supabase";
+import { supabase } from "../../src/lib/supabase";
 import { format } from "date-fns";
 
 /* =====================================================
-   TYPES (SINGLE SOURCE OF TRUTH – NO DUPLICATES)
+   TYPES
 ===================================================== */
+
+type Role = "manager" | "employee";
 
 type PTORecord = {
   id: string;
@@ -50,12 +52,8 @@ type SelectedDateInfo = {
   holidays: HolidayRecord[];
 };
 
-type MonthEvent = {
-  id: string;
-  sortDate: string;
-  displayDate: string;
-  type: "Birthday" | "Holiday";
-  title: string;
+type Props = {
+  role: Role;
 };
 
 /* =====================================================
@@ -105,12 +103,8 @@ function buildRanges(dates: string[]) {
   return ranges;
 }
 
-function pretty(date: string) {
-  return new Date(date).toLocaleDateString();
-}
-
 /* =====================================================
-   DATE DETAILS MODAL (INLINE)
+   DATE DETAILS MODAL
 ===================================================== */
 
 function DateDetailsModal({
@@ -137,7 +131,6 @@ function DateDetailsModal({
           </View>
 
           <ScrollView style={styles.modalContent}>
-            {/* Birthdays */}
             {selectedDate.birthdays.length > 0 && (
               <View style={styles.section}>
                 <Text style={[styles.sectionTitle, { color: "#FFD54F" }]}>
@@ -151,7 +144,6 @@ function DateDetailsModal({
               </View>
             )}
 
-            {/* PTO */}
             {selectedDate.ptoRecords.length > 0 && (
               <View style={styles.section}>
                 <Text style={[styles.sectionTitle, { color: "#81C784" }]}>
@@ -165,7 +157,6 @@ function DateDetailsModal({
               </View>
             )}
 
-            {/* Holidays */}
             {selectedDate.holidays.length > 0 && (
               <View style={styles.section}>
                 <Text style={[styles.sectionTitle, { color: "#FFB74D" }]}>
@@ -197,9 +188,8 @@ function DateDetailsModal({
    CALENDAR TAB (MAIN EXPORT)
 ===================================================== */
 
-export default function CalendarTab() {
+export default function CalendarTab({ role }: Props) {
   const [loading, setLoading] = useState(true);
-
   const [ptoRecords, setPtoRecords] = useState<PTORecord[]>([]);
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [holidays, setHolidays] = useState<HolidayRecord[]>([]);
@@ -207,34 +197,21 @@ export default function CalendarTab() {
   const [selectedInfo, setSelectedInfo] =
     useState<SelectedDateInfo | null>(null);
 
-  const [currentMonth, setCurrentMonth] = useState(() => {
-    const d = new Date();
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-  });
-
-  /* ---------- LOAD DATA ---------- */
-
   useEffect(() => {
     loadData();
   }, []);
 
   async function loadData() {
     setLoading(true);
-
     try {
-      const { data: auth } = await supabase.auth.getUser();
-      const user = auth?.user;
-      if (!user) return;
-
       const { data: pto } = await supabase.from("pto_records").select("*");
-      setPtoRecords(pto || []);
-
       const { data: emp } = await supabase
         .from("employees")
         .select("id, name, birthday");
-      setEmployees(emp || []);
-
       const { data: hol } = await supabase.from("holidays").select("*");
+
+      setPtoRecords(pto || []);
+      setEmployees(emp || []);
       setHolidays(hol || []);
     } catch (e: any) {
       Alert.alert("Error", e.message);
@@ -242,8 +219,6 @@ export default function CalendarTab() {
       setLoading(false);
     }
   }
-
-  /* ---------- MARK CALENDAR ---------- */
 
   useEffect(() => {
     const marks: any = {};
@@ -273,29 +248,6 @@ export default function CalendarTab() {
     setMarkedDates(marks);
   }, [ptoRecords, employees, holidays]);
 
-  /* ---------- DAY SELECT ---------- */
-
-  function onDayPress(day: { dateString: string }) {
-    const clicked = day.dateString;
-    const year = new Date().getFullYear();
-
-    setSelectedInfo({
-      date: new Date(clicked),
-      ptoRecords: ptoRecords.filter(
-        (p) => normalizeDate(p.date) === clicked
-      ),
-      birthdays: employees.filter((e) => {
-        const d = normalizeDate(e.birthday);
-        if (!d) return false;
-        const [, mm, dd] = d.split("-");
-        return `${year}-${mm}-${dd}` === clicked;
-      }),
-      holidays: holidays.filter((h) => h.holiday_date === clicked),
-    });
-  }
-
-  /* ---------- UI ---------- */
-
   if (loading) {
     return (
       <View style={styles.center}>
@@ -311,9 +263,25 @@ export default function CalendarTab() {
           <Calendar
             markingType="multi-dot"
             markedDates={markedDates}
-            onDayPress={onDayPress}
-            onMonthChange={(m) =>
-              setCurrentMonth(`${m.year}-${String(m.month).padStart(2, "0")}`)
+            onDayPress={(day) =>
+              setSelectedInfo({
+                date: new Date(day.dateString),
+                ptoRecords: ptoRecords.filter(
+                  (p) => normalizeDate(p.date) === day.dateString
+                ),
+                birthdays: employees.filter((e) => {
+                  const d = normalizeDate(e.birthday);
+                  if (!d) return false;
+                  const [, mm, dd] = d.split("-");
+                  return (
+                    `${new Date().getFullYear()}-${mm}-${dd}` ===
+                    day.dateString
+                  );
+                }),
+                holidays: holidays.filter(
+                  (h) => h.holiday_date === day.dateString
+                ),
+              })
             }
           />
         </View>
@@ -340,7 +308,6 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 15,
   },
-
   overlay: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.6)",
@@ -362,7 +329,6 @@ const styles = StyleSheet.create({
   modalHeaderText: { fontSize: 20, color: "#fff" },
   close: { fontSize: 20, color: "#ccc" },
   modalContent: { padding: 20 },
-
   section: { marginBottom: 20 },
   sectionTitle: { fontSize: 17, fontWeight: "bold", marginBottom: 10 },
   itemBox: { padding: 12, borderRadius: 10, marginBottom: 8 },

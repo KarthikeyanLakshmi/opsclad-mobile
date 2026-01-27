@@ -6,7 +6,7 @@ import {
   ActivityIndicator,
   Alert,
 } from "react-native";
-import { supabase } from "../../../src/lib/supabase";
+import { supabase } from "../../src/lib/supabase";
 
 /* ---------------- TYPES ---------------- */
 
@@ -87,7 +87,7 @@ export default function UpcomingEvents() {
     const items: EventItem[] = [];
     const [year, month] = currentMonth.split("-");
 
-    // Birthdays
+    // 🎂 Birthdays
     employees.forEach((e) => {
       const d = normalizeDate(e.birthday);
       if (!d) return;
@@ -105,7 +105,7 @@ export default function UpcomingEvents() {
       }
     });
 
-    // Holidays
+    // 🎌 Holidays
     holidays.forEach((h) => {
       if (!h.holiday_date.startsWith(currentMonth)) return;
 

@@ -10,7 +10,11 @@ import {
   Modal,
   TextInput,
 } from "react-native";
-import { supabase } from "../../../src/lib/supabase";
+import { supabase } from "../../src/lib/supabase";
+
+/* ---------------- TYPES ---------------- */
+
+type Role = "manager" | "employee";
 
 type Announcement = {
   id: string;
@@ -20,10 +24,15 @@ type Announcement = {
   created_by: string;
 };
 
-export default function Announcements() {
+type Props = {
+  role: Role;
+};
+
+/* ---------------- COMPONENT ---------------- */
+
+export default function Announcements({ role }: Props) {
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [loading, setLoading] = useState(true);
-  const [isManager, setIsManager] = useState(false);
 
   // modal + form
   const [showModal, setShowModal] = useState(false);
@@ -36,19 +45,6 @@ export default function Announcements() {
 
   async function loadAnnouncements() {
     setLoading(true);
-
-    const { data: auth } = await supabase.auth.getUser();
-    const user = auth?.user;
-
-    if (user) {
-      const { data: roleRow } = await supabase
-        .from("user_roles")
-        .select("role")
-        .eq("user_id", user.id)
-        .single();
-
-      setIsManager(roleRow?.role === "manager");
-    }
 
     const { data, error } = await supabase
       .from("announcements")
@@ -93,15 +89,14 @@ export default function Announcements() {
     loadAnnouncements();
   }
 
-  // --------------------
-  // UI
-  // --------------------
+  /* ---------------- UI ---------------- */
+
   return (
     <View style={styles.card}>
       <View style={styles.headerRow}>
         <Text style={styles.sectionTitle}>Announcements</Text>
 
-        {isManager && (
+        {role === "manager" && (
           <TouchableOpacity onPress={() => setShowModal(true)}>
             <Text style={styles.addBtn}>+ Add</Text>
           </TouchableOpacity>
@@ -169,7 +164,8 @@ export default function Announcements() {
   );
 }
 
-// ---------------- STYLES ----------------
+/* ---------------- STYLES ---------------- */
+
 const styles = StyleSheet.create({
   card: {
     backgroundColor: "#fff",
@@ -226,7 +222,6 @@ const styles = StyleSheet.create({
     color: "#6B7280",
   },
 
-  // MODAL
   modalOverlay: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.5)",

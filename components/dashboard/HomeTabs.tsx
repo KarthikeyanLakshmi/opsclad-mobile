@@ -1,9 +1,19 @@
 import React, { useState } from "react";
 import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
-import OverviewTab from "./dashboard/Overview";
-import CalendarTab from "./dashboard/Calendar";
+import OverviewTab from "./Overview";
+import CalendarTab from "./Calendar";
 
-export default function HomeTabs() {
+/* ---------------- TYPES ---------------- */
+
+type Role = "manager" | "employee";
+
+type Props = {
+  role: Role;
+};
+
+/* ---------------- COMPONENT ---------------- */
+
+export default function HomeTabs({ role }: Props) {
   const [tab, setTab] = useState<"overview" | "calendar">("overview");
 
   return (
@@ -30,10 +40,16 @@ export default function HomeTabs() {
       </View>
 
       {/* CONTENT */}
-      {tab === "overview" ? <OverviewTab /> : <CalendarTab />}
+      {tab === "overview" ? (
+        <OverviewTab role={role} />
+      ) : (
+        <CalendarTab role={role} />
+      )}
     </View>
   );
 }
+
+/* ---------------- STYLES ---------------- */
 
 const styles = StyleSheet.create({
   tabs: {
