@@ -1,42 +1,65 @@
-import React from "react";
-import { View, StyleSheet, ScrollView } from "react-native";
-import Announcements from "../dashboard/Announcement";
-import UpcomingEvents from "../dashboard/UpcomingEvents";
+import React from "react"
+import { View, StyleSheet, ScrollView } from "react-native"
+import Announcements from "../dashboard/Announcement"
+import UpcomingEvents from "../dashboard/UpcomingEvents"
 
-/* ---------------- TYPES ---------------- */
-
-type Role = "manager" | "employee";
+type Role = "manager" | "employee"
 
 type Props = {
-  role: Role;
-};
-
-/* ---------------- COMPONENT ---------------- */
+  role: Role
+}
 
 export default function OverviewTab({ role }: Props) {
   return (
-    <ScrollView contentContainerStyle={styles.container}>
-      {/* TOP HALF – ANNOUNCEMENTS */}
-      <View style={styles.section}>
-        <Announcements role={role} />
-      </View>
+    <View style={styles.screen}>
+      <View style={styles.card}>
+        {/* ANNOUNCEMENTS – FLEXIBLE TOP */}
+        <View style={styles.announcementsContainer}>
+          <ScrollView
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={{ paddingBottom: 8 }}
+          >
+            <Announcements role={role} />
+          </ScrollView>
+        </View>
 
-      {/* BOTTOM HALF – UPCOMING EVENTS */}
-      <View style={styles.section}>
-        <UpcomingEvents />
+        {/* EVENTS – BOTTOM, CAPPED AT HALF */}
+        <View style={styles.eventsContainer}>
+          <ScrollView
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={{ paddingBottom: 8 }}
+          >
+            <UpcomingEvents />
+          </ScrollView>
+        </View>
       </View>
-    </ScrollView>
-  );
+    </View>
+  )
 }
-
-/* ---------------- STYLES ---------------- */
-
 const styles = StyleSheet.create({
-  container: {
-    paddingBottom: 100,
+  screen: {
+    flex: 1,
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: 8,
   },
-  section: {
-    marginHorizontal: 16,
-    marginBottom: 16,
+
+  card: {
+    flex: 1,
+    backgroundColor: "#111",
+    borderRadius: 16,
+    overflow: "hidden",
+    padding: 12,
   },
-});
+
+  /* Announcements grow freely */
+  announcementsContainer: {
+    flexGrow: 1,     // ⬅️ takes remaining space
+    marginBottom: 8,
+  },
+
+  /* Events stick to bottom, capped */
+  eventsContainer: {
+    maxHeight: "50%", // ⬅️ STOP at halfway
+  },
+})

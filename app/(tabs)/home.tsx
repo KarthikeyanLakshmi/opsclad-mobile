@@ -67,10 +67,7 @@ export default function HomeScreen() {
     <View style={styles.root}>
       {/* HEADER */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Home</Text>
-        <Text style={styles.roleText}>
-          {role === "manager" ? "Manager View" : "Employee View"}
-        </Text>
+        <Text style={styles.headerTitle}>DataClad</Text>
       </View>
 
       {/* TABS */}
@@ -130,7 +127,7 @@ const styles = StyleSheet.create({
   },
 
   headerTitle: {
-    fontSize: 26,
+    fontSize: 40,
     fontWeight: "700",
     color: "#fff",
   },

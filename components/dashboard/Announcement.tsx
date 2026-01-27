@@ -19,14 +19,32 @@ type Role = "manager" | "employee";
 type Announcement = {
   id: string;
   title: string;
-  message: string;
+  content: string;
+  start_date: string;
+  end_date: string;
   created_at: string;
-  created_by: string;
 };
 
 type Props = {
   role: Role;
 };
+
+/* ---------------- HELPERS ---------------- */
+
+function getStatus(
+  start: string,
+  end: string
+): "active" | "upcoming" | "inactive" {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const s = new Date(start);
+  const e = new Date(end);
+
+  if (today < s) return "upcoming";
+  if (today > e) return "inactive";
+  return "active";
+}
 
 /* ---------------- COMPONENT ---------------- */
 
@@ -34,10 +52,15 @@ export default function Announcements({ role }: Props) {
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // modal + form
-  const [showModal, setShowModal] = useState(false);
-  const [title, setTitle] = useState("");
-  const [message, setMessage] = useState("");
+  const [modalOpen, setModalOpen] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+
+  const [form, setForm] = useState({
+    title: "",
+    content: "",
+    start_date: "",
+    end_date: "",
+  });
 
   useEffect(() => {
     loadAnnouncements();
@@ -48,113 +71,197 @@ export default function Announcements({ role }: Props) {
 
     const { data, error } = await supabase
       .from("announcements")
-      .select("*")
-      .order("created_at", { ascending: false })
-      .limit(5);
+      .select("id, title, content, start_date, end_date, created_at")
+      .order("created_at", { ascending: false });
 
     if (error) {
       Alert.alert("Error", "Failed to load announcements");
-    } else {
-      setAnnouncements(data || []);
+      setLoading(false);
+      return;
     }
 
+    const filtered =
+      role === "employee"
+        ? data?.filter(
+            (a) => getStatus(a.start_date, a.end_date) !== "upcoming"
+          )
+        : data;
+
+    setAnnouncements(filtered || []);
     setLoading(false);
   }
 
-  async function postAnnouncement() {
-    if (!title || !message) {
-      Alert.alert("Missing fields", "Title and message are required.");
+  async function saveAnnouncement() {
+    if (
+      !form.title ||
+      !form.content ||
+      !form.start_date ||
+      !form.end_date
+    ) {
+      Alert.alert("Missing fields", "All fields are required");
       return;
     }
 
-    const { data: auth } = await supabase.auth.getUser();
-    const user = auth?.user;
+    const query = editingId
+      ? supabase
+          .from("announcements")
+          .update(form)
+          .eq("id", editingId)
+      : supabase.from("announcements").insert(form);
 
-    if (!user) return;
-
-    const { error } = await supabase.from("announcements").insert({
-      title,
-      message,
-      created_by: user.email,
-    });
+    const { error } = await query;
 
     if (error) {
-      Alert.alert("Error", "Failed to post announcement");
+      Alert.alert("Error", "Failed to save announcement");
       return;
     }
 
-    setTitle("");
-    setMessage("");
-    setShowModal(false);
+    setModalOpen(false);
+    setEditingId(null);
+    setForm({ title: "", content: "", start_date: "", end_date: "" });
     loadAnnouncements();
+  }
+
+  async function deleteAnnouncement(id: string) {
+    Alert.alert("Delete", "Delete this announcement?", [
+      { text: "Cancel" },
+      {
+        text: "Delete",
+        style: "destructive",
+        onPress: async () => {
+          await supabase.from("announcements").delete().eq("id", id);
+          loadAnnouncements();
+        },
+      },
+    ]);
   }
 
   /* ---------------- UI ---------------- */
 
   return (
     <View style={styles.card}>
-      <View style={styles.headerRow}>
-        <Text style={styles.sectionTitle}>Announcements</Text>
+      <View style={styles.header}>
+        <Text style={styles.title}>Announcements</Text>
 
         {role === "manager" && (
-          <TouchableOpacity onPress={() => setShowModal(true)}>
-            <Text style={styles.addBtn}>+ Add</Text>
+          <TouchableOpacity
+            onPress={() => {
+              setEditingId(null);
+              setForm({
+                title: "",
+                content: "",
+                start_date: "",
+                end_date: "",
+              });
+              setModalOpen(true);
+            }}
+          >
+            <Text style={styles.add}>+ Add</Text>
           </TouchableOpacity>
         )}
       </View>
 
       {loading ? (
-        <ActivityIndicator size="small" color="#0A1A4F" />
+        <ActivityIndicator />
       ) : announcements.length === 0 ? (
-        <Text style={styles.emptyText}>No announcements yet.</Text>
+        <Text style={styles.empty}>No announcements</Text>
       ) : (
         <ScrollView>
-          {announcements.map((a) => (
-            <View key={a.id} style={styles.item}>
-              <Text style={styles.title}>{a.title}</Text>
-              <Text style={styles.message}>{a.message}</Text>
-              <Text style={styles.meta}>
-                {new Date(a.created_at).toLocaleDateString()} · {a.created_by}
-              </Text>
-            </View>
-          ))}
+          {announcements.map((a) => {
+            const status = getStatus(a.start_date, a.end_date);
+
+            return (
+              <View key={a.id} style={styles.item}>
+                {/* Manager actions */}
+                {role === "manager" && (
+                  <View style={styles.actions}>
+                    <TouchableOpacity
+                      onPress={() => {
+                        setEditingId(a.id);
+                        setForm({
+                          title: a.title,
+                          content: a.content,
+                          start_date: a.start_date,
+                          end_date: a.end_date,
+                        });
+                        setModalOpen(true);
+                      }}
+                    >
+                      <Text style={styles.edit}>✏️</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity onPress={() => deleteAnnouncement(a.id)}>
+                      <Text style={styles.delete}>🗑</Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
+
+                <Text style={styles.itemTitle}>{a.title}</Text>
+                <Text style={styles.content}>{a.content}</Text>
+
+                <View style={styles.meta}>
+                  <Text style={[styles.badge, styles[status]]}>
+                    {status.toUpperCase()}
+                  </Text>
+                  <Text style={styles.dates}>
+                    {a.start_date} → {a.end_date}
+                  </Text>
+                </View>
+              </View>
+            );
+          })}
         </ScrollView>
       )}
 
       {/* ---------------- MODAL ---------------- */}
-      <Modal transparent animationType="slide" visible={showModal}>
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalBox}>
-            <Text style={styles.modalTitle}>New Announcement</Text>
+      <Modal visible={modalOpen} transparent animationType="slide">
+        <View style={styles.overlay}>
+          <View style={styles.modal}>
+            <Text style={styles.modalTitle}>
+              {editingId ? "Edit Announcement" : "New Announcement"}
+            </Text>
 
             <TextInput
               placeholder="Title"
-              value={title}
-              onChangeText={setTitle}
+              value={form.title}
+              onChangeText={(v) => setForm((p) => ({ ...p, title: v }))}
               style={styles.input}
             />
 
             <TextInput
               placeholder="Message"
-              value={message}
-              onChangeText={setMessage}
-              style={[styles.input, styles.textarea]}
               multiline
+              value={form.content}
+              onChangeText={(v) => setForm((p) => ({ ...p, content: v }))}
+              style={[styles.input, styles.textarea]}
+            />
+
+            <TextInput
+              placeholder="Start Date (YYYY-MM-DD)"
+              value={form.start_date}
+              onChangeText={(v) => setForm((p) => ({ ...p, start_date: v }))}
+              style={styles.input}
+            />
+
+            <TextInput
+              placeholder="End Date (YYYY-MM-DD)"
+              value={form.end_date}
+              onChangeText={(v) => setForm((p) => ({ ...p, end_date: v }))}
+              style={styles.input}
             />
 
             <View style={styles.row}>
               <TouchableOpacity
-                style={styles.cancelBtn}
-                onPress={() => setShowModal(false)}
+                style={styles.cancel}
+                onPress={() => setModalOpen(false)}
               >
-                <Text style={styles.btnText}>Cancel</Text>
+                <Text style={styles.btn}>Cancel</Text>
               </TouchableOpacity>
 
-              <TouchableOpacity
-                style={styles.saveBtn}
-                onPress={postAnnouncement}
-              >
-                <Text style={styles.btnText}>Post</Text>
+              <TouchableOpacity style={styles.save} onPress={saveAnnouncement}>
+                <Text style={styles.btn}>
+                  {editingId ? "Update" : "Post"}
+                </Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -172,111 +279,83 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 16,
   },
-
-  headerRow: {
+  header: {
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "center",
     marginBottom: 10,
   },
-
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: "700",
-    color: "#0A1A4F",
-  },
-
-  addBtn: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: "#2563EB",
-  },
-
-  emptyText: {
-    textAlign: "center",
-    paddingVertical: 20,
-    color: "#6B7280",
-  },
+  title: { fontSize: 20, fontWeight: "700", color: "#0A1A4F" },
+  add: { fontWeight: "700", color: "#2563EB" },
+  empty: { textAlign: "center", color: "#6B7280" },
 
   item: {
-    paddingVertical: 10,
     borderBottomWidth: 1,
     borderColor: "#E5E7EB",
+    paddingVertical: 12,
   },
 
-  title: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: "#111827",
+  actions: {
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    gap: 12,
+  },
+
+  edit: { fontSize: 16 },
+  delete: { fontSize: 16 },
+
+  itemTitle: { fontSize: 16, fontWeight: "700", color: "#111827" },
+  content: { color: "#374151", marginTop: 4 },
+
+  meta: { marginTop: 8 },
+  dates: { fontSize: 12, color: "#6B7280" },
+
+  badge: {
+    alignSelf: "flex-start",
+    fontSize: 11,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 10,
     marginBottom: 4,
+    color: "#fff",
   },
 
-  message: {
-    fontSize: 14,
-    color: "#374151",
-  },
+  active: { backgroundColor: "#2563EB" },
+  upcoming: { backgroundColor: "#F97316" },
+  inactive: { backgroundColor: "#6B7280" },
 
-  meta: {
-    marginTop: 6,
-    fontSize: 12,
-    color: "#6B7280",
-  },
-
-  modalOverlay: {
+  overlay: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.5)",
+    backgroundColor: "rgba(0,0,0,0.6)",
     justifyContent: "center",
     padding: 20,
   },
 
-  modalBox: {
-    backgroundColor: "#fff",
-    borderRadius: 12,
-    padding: 20,
-  },
-
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: "700",
-    marginBottom: 12,
-  },
+  modal: { backgroundColor: "#fff", borderRadius: 12, padding: 16 },
+  modalTitle: { fontSize: 18, fontWeight: "700", marginBottom: 12 },
 
   input: {
     backgroundColor: "#F3F4F6",
-    padding: 10,
     borderRadius: 6,
-    marginBottom: 10,
+    padding: 10,
+    marginBottom: 8,
   },
 
-  textarea: {
-    height: 80,
-    textAlignVertical: "top",
-  },
+  textarea: { height: 80 },
 
-  row: {
-    flexDirection: "row",
-    marginTop: 10,
+  row: { flexDirection: "row", marginTop: 10 },
+  cancel: {
+    flex: 1,
+    backgroundColor: "#9CA3AF",
+    padding: 12,
+    borderRadius: 6,
+    marginRight: 6,
   },
-
-  saveBtn: {
+  save: {
     flex: 1,
     backgroundColor: "#0A1A4F",
     padding: 12,
     borderRadius: 6,
     marginLeft: 6,
   },
-
-  cancelBtn: {
-    flex: 1,
-    backgroundColor: "gray",
-    padding: 12,
-    borderRadius: 6,
-    marginRight: 6,
-  },
-
-  btnText: {
-    color: "#fff",
-    textAlign: "center",
-    fontWeight: "700",
-  },
+  btn: { color: "#fff", textAlign: "center", fontWeight: "700" },
 });
