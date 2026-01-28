@@ -1,53 +1,48 @@
 // app/home/index.tsx
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react"
 import {
   View,
   Text,
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
-} from "react-native";
-import { supabase } from "../../src/lib/supabase";
+} from "react-native"
+import { supabase } from "../../src/lib/supabase"
 
 // tabs
-import OverviewTab from "../../components/dashboard/Overview";
-import CalendarTab from "../../components/dashboard/Calendar";
+import OverviewTab from "../../components/dashboard/Overview"
+import CalendarTab from "../../components/dashboard/Calendar"
 
 export default function HomeScreen() {
-  const [loading, setLoading] = useState(true);
-  const [role, setRole] = useState<"manager" | "employee">("employee");
-  const [tab, setTab] = useState<"overview" | "calendar">("overview");
+  const [loading, setLoading] = useState(true)
+  const [role, setRole] = useState<"manager" | "employee">("employee")
+  const [tab, setTab] = useState<"overview" | "calendar">("overview")
 
   /* --------------------------------------------------
      LOAD USER ROLE
   -------------------------------------------------- */
   useEffect(() => {
     async function loadRole() {
-      const { data: auth } = await supabase.auth.getUser();
+      const { data: auth } = await supabase.auth.getUser()
 
       if (!auth?.user) {
-        setRole("employee");
-        setLoading(false);
-        return;
+        setRole("employee")
+        setLoading(false)
+        return
       }
 
-      const { data, error } = await supabase
+      const { data } = await supabase
         .from("user_roles")
         .select("role")
         .eq("user_id", auth.user.id)
-        .single();
+        .single()
 
-      if (!error && data?.role === "manager") {
-        setRole("manager");
-      } else {
-        setRole("employee");
-      }
-
-      setLoading(false);
+      setRole(data?.role === "manager" ? "manager" : "employee")
+      setLoading(false)
     }
 
-    loadRole();
-  }, []);
+    loadRole()
+  }, [])
 
   /* --------------------------------------------------
      LOADING STATE
@@ -57,7 +52,7 @@ export default function HomeScreen() {
       <View style={styles.center}>
         <ActivityIndicator size="large" color="#0A1A4F" />
       </View>
-    );
+    )
   }
 
   /* --------------------------------------------------
@@ -67,7 +62,10 @@ export default function HomeScreen() {
     <View style={styles.root}>
       {/* HEADER */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>DataClad</Text>
+        <Text style={styles.title}>DataClad</Text>
+
+        {/* INVERSE CURVE */}
+        <View style={styles.curveCut} />
       </View>
 
       {/* TABS */}
@@ -100,7 +98,7 @@ export default function HomeScreen() {
         )}
       </View>
     </View>
-  );
+  )
 }
 
 /* --------------------------------------------------
@@ -119,29 +117,39 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
 
+  /* HEADER */
   header: {
-    paddingTop: 50,
-    paddingBottom: 20,
+    height: 140,
     backgroundColor: "#0A1A4F",
+    justifyContent: "center",
     alignItems: "center",
+    position: "relative", // 🔑 required for curve
   },
 
-  headerTitle: {
-    fontSize: 40,
-    fontWeight: "700",
+  title: {
+    fontSize: 34,
+    fontWeight: "800",
     color: "#fff",
+    letterSpacing: 1,
   },
 
-  roleText: {
-    marginTop: 4,
-    fontSize: 13,
-    color: "#CBD5E1",
+  /* INVERSE CURVE (concave) */
+  curveCut: {
+    position: "absolute",
+    bottom: -30,
+    alignSelf: "center",
+    width: "100%",
+    height: 60,
+    backgroundColor: "#F3F4F6", // MUST match screen bg
+    borderRadius: 999,
   },
 
+  /* TABS */
   tabs: {
     flexDirection: "row",
     backgroundColor: "#e5e7eb",
-    margin: 16,
+    marginHorizontal: 16,
+    marginTop: 24, // space from curve
     borderRadius: 20,
     padding: 4,
   },
@@ -166,4 +174,4 @@ const styles = StyleSheet.create({
     color: "#0A1A4F",
     fontWeight: "700",
   },
-});
+})

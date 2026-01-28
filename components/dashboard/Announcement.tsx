@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react"
 import {
   View,
   Text,
@@ -9,25 +9,26 @@ import {
   Alert,
   Modal,
   TextInput,
-} from "react-native";
-import { supabase } from "../../src/lib/supabase";
+} from "react-native"
+import { supabase } from "../../src/lib/supabase"
 
 /* ---------------- TYPES ---------------- */
 
-type Role = "manager" | "employee";
+type Role = "manager" | "employee"
 
 type Announcement = {
-  id: string;
-  title: string;
-  content: string;
-  start_date: string;
-  end_date: string;
-  created_at: string;
-};
+  id: string
+  title: string
+  content: string
+  start_date: string
+  end_date: string
+  created_at: string
+}
 
 type Props = {
-  role: Role;
-};
+  role: Role
+  selectedMonth: Date   // ✅ NEW
+}
 
 /* ---------------- HELPERS ---------------- */
 
@@ -35,60 +36,82 @@ function getStatus(
   start: string,
   end: string
 ): "active" | "upcoming" | "inactive" {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
 
-  const s = new Date(start);
-  const e = new Date(end);
+  const s = new Date(start)
+  const e = new Date(end)
 
-  if (today < s) return "upcoming";
-  if (today > e) return "inactive";
-  return "active";
+  if (today < s) return "upcoming"
+  if (today > e) return "inactive"
+  return "active"
+}
+
+/* ✅ Month overlap check (same logic as web) */
+function overlapsMonth(
+  start: string,
+  end: string,
+  month: Date
+) {
+  const monthStart = new Date(month.getFullYear(), month.getMonth(), 1)
+  const monthEnd = new Date(month.getFullYear(), month.getMonth() + 1, 0)
+
+  return (
+    new Date(start) <= monthEnd &&
+    new Date(end) >= monthStart
+  )
 }
 
 /* ---------------- COMPONENT ---------------- */
 
-export default function Announcements({ role }: Props) {
-  const [announcements, setAnnouncements] = useState<Announcement[]>([]);
-  const [loading, setLoading] = useState(true);
+export default function Announcements({ role, selectedMonth }: Props) {
+  const [announcements, setAnnouncements] = useState<Announcement[]>([])
+  const [loading, setLoading] = useState(true)
 
-  const [modalOpen, setModalOpen] = useState(false);
-  const [editingId, setEditingId] = useState<string | null>(null);
+  const [modalOpen, setModalOpen] = useState(false)
+  const [editingId, setEditingId] = useState<string | null>(null)
 
   const [form, setForm] = useState({
     title: "",
     content: "",
     start_date: "",
     end_date: "",
-  });
+  })
 
+  /* 🔁 Reload when month OR role changes */
   useEffect(() => {
-    loadAnnouncements();
-  }, []);
+    loadAnnouncements()
+  }, [role, selectedMonth])
 
   async function loadAnnouncements() {
-    setLoading(true);
+    setLoading(true)
 
     const { data, error } = await supabase
       .from("announcements")
       .select("id, title, content, start_date, end_date, created_at")
-      .order("created_at", { ascending: false });
+      .order("created_at", { ascending: false })
 
     if (error) {
-      Alert.alert("Error", "Failed to load announcements");
-      setLoading(false);
-      return;
+      Alert.alert("Error", "Failed to load announcements")
+      setLoading(false)
+      return
     }
 
-    const filtered =
+    /* 🔹 Role-based filtering */
+    const roleFiltered =
       role === "employee"
         ? data?.filter(
-            (a) => getStatus(a.start_date, a.end_date) !== "upcoming"
+            a => getStatus(a.start_date, a.end_date) !== "upcoming"
           )
-        : data;
+        : data
 
-    setAnnouncements(filtered || []);
-    setLoading(false);
+    /* 🔹 Month-based filtering */
+    const monthFiltered = roleFiltered?.filter(a =>
+      overlapsMonth(a.start_date, a.end_date, selectedMonth)
+    )
+
+    setAnnouncements(monthFiltered || [])
+    setLoading(false)
   }
 
   async function saveAnnouncement() {
@@ -98,8 +121,8 @@ export default function Announcements({ role }: Props) {
       !form.start_date ||
       !form.end_date
     ) {
-      Alert.alert("Missing fields", "All fields are required");
-      return;
+      Alert.alert("Missing fields", "All fields are required")
+      return
     }
 
     const query = editingId
@@ -107,19 +130,19 @@ export default function Announcements({ role }: Props) {
           .from("announcements")
           .update(form)
           .eq("id", editingId)
-      : supabase.from("announcements").insert(form);
+      : supabase.from("announcements").insert(form)
 
-    const { error } = await query;
+    const { error } = await query
 
     if (error) {
-      Alert.alert("Error", "Failed to save announcement");
-      return;
+      Alert.alert("Error", "Failed to save announcement")
+      return
     }
 
-    setModalOpen(false);
-    setEditingId(null);
-    setForm({ title: "", content: "", start_date: "", end_date: "" });
-    loadAnnouncements();
+    setModalOpen(false)
+    setEditingId(null)
+    setForm({ title: "", content: "", start_date: "", end_date: "" })
+    loadAnnouncements()
   }
 
   async function deleteAnnouncement(id: string) {
@@ -129,11 +152,11 @@ export default function Announcements({ role }: Props) {
         text: "Delete",
         style: "destructive",
         onPress: async () => {
-          await supabase.from("announcements").delete().eq("id", id);
-          loadAnnouncements();
+          await supabase.from("announcements").delete().eq("id", id)
+          loadAnnouncements()
         },
       },
-    ]);
+    ])
   }
 
   /* ---------------- UI ---------------- */
@@ -146,14 +169,14 @@ export default function Announcements({ role }: Props) {
         {role === "manager" && (
           <TouchableOpacity
             onPress={() => {
-              setEditingId(null);
+              setEditingId(null)
               setForm({
                 title: "",
                 content: "",
                 start_date: "",
                 end_date: "",
-              });
-              setModalOpen(true);
+              })
+              setModalOpen(true)
             }}
           >
             <Text style={styles.add}>+ Add</Text>
@@ -164,27 +187,26 @@ export default function Announcements({ role }: Props) {
       {loading ? (
         <ActivityIndicator />
       ) : announcements.length === 0 ? (
-        <Text style={styles.empty}>No announcements</Text>
+        <Text style={styles.empty}>No announcements for this month</Text>
       ) : (
-        <ScrollView>
-          {announcements.map((a) => {
-            const status = getStatus(a.start_date, a.end_date);
+        <ScrollView showsVerticalScrollIndicator={false}>
+          {announcements.map(a => {
+            const status = getStatus(a.start_date, a.end_date)
 
             return (
               <View key={a.id} style={styles.item}>
-                {/* Manager actions */}
                 {role === "manager" && (
                   <View style={styles.actions}>
                     <TouchableOpacity
                       onPress={() => {
-                        setEditingId(a.id);
+                        setEditingId(a.id)
                         setForm({
                           title: a.title,
                           content: a.content,
                           start_date: a.start_date,
                           end_date: a.end_date,
-                        });
-                        setModalOpen(true);
+                        })
+                        setModalOpen(true)
                       }}
                     >
                       <Text style={styles.edit}>✏️</Text>
@@ -208,7 +230,7 @@ export default function Announcements({ role }: Props) {
                   </Text>
                 </View>
               </View>
-            );
+            )
           })}
         </ScrollView>
       )}
@@ -224,7 +246,7 @@ export default function Announcements({ role }: Props) {
             <TextInput
               placeholder="Title"
               value={form.title}
-              onChangeText={(v) => setForm((p) => ({ ...p, title: v }))}
+              onChangeText={v => setForm(p => ({ ...p, title: v }))}
               style={styles.input}
             />
 
@@ -232,21 +254,21 @@ export default function Announcements({ role }: Props) {
               placeholder="Message"
               multiline
               value={form.content}
-              onChangeText={(v) => setForm((p) => ({ ...p, content: v }))}
+              onChangeText={v => setForm(p => ({ ...p, content: v }))}
               style={[styles.input, styles.textarea]}
             />
 
             <TextInput
               placeholder="Start Date (YYYY-MM-DD)"
               value={form.start_date}
-              onChangeText={(v) => setForm((p) => ({ ...p, start_date: v }))}
+              onChangeText={v => setForm(p => ({ ...p, start_date: v }))}
               style={styles.input}
             />
 
             <TextInput
               placeholder="End Date (YYYY-MM-DD)"
               value={form.end_date}
-              onChangeText={(v) => setForm((p) => ({ ...p, end_date: v }))}
+              onChangeText={v => setForm(p => ({ ...p, end_date: v }))}
               style={styles.input}
             />
 
@@ -268,7 +290,7 @@ export default function Announcements({ role }: Props) {
         </View>
       </Modal>
     </View>
-  );
+  )
 }
 
 /* ---------------- STYLES ---------------- */
@@ -358,4 +380,4 @@ const styles = StyleSheet.create({
     marginLeft: 6,
   },
   btn: { color: "#fff", textAlign: "center", fontWeight: "700" },
-});
+})
