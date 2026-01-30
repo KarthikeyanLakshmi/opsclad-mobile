@@ -104,7 +104,7 @@ export default function PendingApprovals({
   if (loading) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator size="large" color="#0A1A4F" />
+<ActivityIndicator size="large" color={COLORS.primary} />
       </View>
     );
   }
@@ -113,7 +113,7 @@ export default function PendingApprovals({
     return (
       (emptyComponent as any) ?? (
         <View style={styles.center}>
-          <Text style={{ color: "#999", fontSize: 16, marginTop: 20 }}>
+<Text style={{ color: COLORS.muted, fontSize: 16, marginTop: 20 }}>
             No pending approvals...
           </Text>
         </View>
@@ -193,68 +193,129 @@ export default function PendingApprovals({
   );
 }
 
+const COLORS = {
+  primary: "#1b2a41", // navy
+  accent: "#ff6b6b",  // coral
+  bg: "#f4f4f5",
+  card: "#ffffff",
+  border: "#e5e7eb",
+  text: "#111827",
+  muted: "#6b7280",
+  warning: "#f59e0b",
+  success: "#16a34a",
+  danger: "#dc2626",
+};
+
 const styles = StyleSheet.create({
-  container: { padding: 12 },
+  container: {
+    padding: 12,
+    backgroundColor: COLORS.bg,
+  },
+
+  /* ---------- CARD ---------- */
   card: {
-    backgroundColor: "#fff",
+    backgroundColor: COLORS.card,
     padding: 16,
-    borderRadius: 10,
+    borderRadius: 14,
     marginBottom: 12,
     borderLeftWidth: 5,
-    borderLeftColor: "#ffcc00",
+    borderLeftColor: COLORS.accent, // 🔥 pending highlight
+    shadowColor: "#000",
+    shadowOpacity: 0.06,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 3,
   },
-  title: { fontSize: 16, fontWeight: "700", marginBottom: 6 },
+
+  title: {
+    fontSize: 16,
+    fontWeight: "800",
+    marginBottom: 6,
+    color: COLORS.primary,
+  },
+
   pendingBadge: {
     marginTop: 6,
-    color: "#b45309",
-    fontWeight: "600",
+    color: COLORS.warning,
+    fontWeight: "700",
   },
+
+  /* ---------- CENTER ---------- */
   center: {
     flex: 1,
     paddingTop: 30,
     justifyContent: "flex-start",
     alignItems: "center",
+    backgroundColor: COLORS.bg,
   },
 
+  /* ---------- MODAL ---------- */
   modalOverlay: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.5)",
+    backgroundColor: "rgba(0,0,0,0.45)",
     justifyContent: "center",
     padding: 20,
   },
+
   modalBox: {
-    backgroundColor: "#fff",
-    borderRadius: 10,
+    backgroundColor: COLORS.card,
+    borderRadius: 14,
     padding: 20,
     maxHeight: "85%",
+    shadowColor: "#000",
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 6,
   },
+
   modalTitle: {
     fontSize: 18,
-    fontWeight: "700",
+    fontWeight: "800",
     marginBottom: 10,
+    color: COLORS.primary,
   },
-  sectionTitle: { marginTop: 10, fontWeight: "700", color: "#0A1A4F" },
 
-  row: { flexDirection: "row", marginTop: 20 },
+  sectionTitle: {
+    marginTop: 12,
+    marginBottom: 4,
+    fontWeight: "700",
+    color: COLORS.primary,
+  },
+
+  /* ---------- ACTION ROW ---------- */
+  row: {
+    flexDirection: "row",
+    marginTop: 20,
+  },
+
   approveBtn: {
     flex: 1,
     padding: 12,
-    backgroundColor: "green",
-    borderRadius: 6,
+    backgroundColor: COLORS.success,
+    borderRadius: 10,
     marginLeft: 6,
   },
+
   rejectBtn: {
     flex: 1,
     padding: 12,
-    backgroundColor: "red",
-    borderRadius: 6,
+    backgroundColor: COLORS.accent,
+    borderRadius: 10,
     marginRight: 6,
   },
-  btnText: { color: "#fff", textAlign: "center", fontWeight: "600" },
+
+  btnText: {
+    color: "#ffffff",
+    textAlign: "center",
+    fontWeight: "800",
+    letterSpacing: 0.3,
+  },
+
   closeBtn: {
     marginTop: 16,
-    backgroundColor: "#0A1A4F",
+    backgroundColor: COLORS.primary,
     padding: 12,
-    borderRadius: 6,
+    borderRadius: 10,
   },
 });

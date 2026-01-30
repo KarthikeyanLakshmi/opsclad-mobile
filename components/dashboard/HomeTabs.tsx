@@ -11,6 +11,16 @@ type Props = {
   role: Role;
 };
 
+/* ---------------- THEME ---------------- */
+
+const COLORS = {
+  primary: "#1b2a41", // navy
+  accent: "#ff6b6b",  // coral
+  bg: "#E5E7EB",
+  card: "#FFFFFF",
+  textMuted: "#6B7280",
+};
+
 /* ---------------- COMPONENT ---------------- */
 
 export default function HomeTabs({ role }: Props) {
@@ -24,7 +34,9 @@ export default function HomeTabs({ role }: Props) {
           style={[styles.tab, tab === "overview" && styles.activeTab]}
           onPress={() => setTab("overview")}
         >
-          <Text style={tab === "overview" ? styles.activeText : styles.text}>
+          <Text
+            style={tab === "overview" ? styles.activeText : styles.text}
+          >
             Overview
           </Text>
         </TouchableOpacity>
@@ -33,7 +45,9 @@ export default function HomeTabs({ role }: Props) {
           style={[styles.tab, tab === "calendar" && styles.activeTab]}
           onPress={() => setTab("calendar")}
         >
-          <Text style={tab === "calendar" ? styles.activeText : styles.text}>
+          <Text
+            style={tab === "calendar" ? styles.activeText : styles.text}
+          >
             Calendar
           </Text>
         </TouchableOpacity>
@@ -54,26 +68,32 @@ export default function HomeTabs({ role }: Props) {
 const styles = StyleSheet.create({
   tabs: {
     flexDirection: "row",
-    backgroundColor: "#e5e7eb",
-    margin: 16,
+    backgroundColor: COLORS.bg,
+    marginHorizontal: 16,
+    marginTop: 8,       // tight under header
+    marginBottom: 8,
     borderRadius: 20,
     padding: 4,
   },
+
   tab: {
     flex: 1,
-    paddingVertical: 8,
+    paddingVertical: 10,
     alignItems: "center",
     borderRadius: 20,
   },
+
   activeTab: {
-    backgroundColor: "#fff",
+    backgroundColor: COLORS.card,
   },
+
   text: {
-    color: "#6b7280",
+    color: COLORS.textMuted,
     fontWeight: "600",
   },
+
   activeText: {
-    color: "#0A1A4F",
+    color: COLORS.accent,
     fontWeight: "700",
   },
 });

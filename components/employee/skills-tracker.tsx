@@ -359,65 +359,95 @@ export default function EmployeeSkillTracker() {
   );
 }
 
+const COLORS = {
+  primary: "#1b2a41", // navy
+  accent: "#ff6b6b",  // coral
+  bg: "#f4f4f5",
+  card: "#ffffff",
+  muted: "#6b7280",
+  border: "#e5e7eb",
+  danger: "#dc2626",
+  star: "#facc15",
+};
 
 const styles = StyleSheet.create({
+  /* ---------- Layout ---------- */
   container: {
-    backgroundColor: "#f9fafb",
+    backgroundColor: COLORS.bg,
     padding: 16,
     minHeight: "100%",
   },
 
-  title: {
-    fontSize: 24,
-    fontWeight: "700",
-    color: "#111827",
-    marginBottom: 16,
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    backgroundColor: COLORS.bg,
+  },
+
+  row: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    marginBottom: 14,
   },
 
   backButton: {
-    marginBottom: 10,
-    paddingVertical: 4,
+    padding: 6,
+    borderRadius: 20,
   },
 
+  /* ---------- Header ---------- */
+  title: {
+    fontSize: 24,
+    fontWeight: "700",
+    color: COLORS.primary,
+  },
+
+  /* ---------- Add Button ---------- */
   addButton: {
     flexDirection: "row",
-    backgroundColor: "#0A1A4F",
-    padding: 12,
-    borderRadius: 8,
+    backgroundColor: COLORS.primary,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    borderRadius: 10,
     alignItems: "center",
     alignSelf: "flex-start",
     marginBottom: 20,
     gap: 6,
   },
   addButtonText: {
-    color: "#fff",
+    color: "#ffffff",
     fontWeight: "700",
   },
 
-  searchBox: { marginBottom: 16 },
-
+  /* ---------- Search ---------- */
+  searchBox: {
+    marginBottom: 16,
+  },
   searchInput: {
-    backgroundColor: "#ffffff",
-    borderColor: "#d1d5db",
+    backgroundColor: COLORS.card,
+    borderColor: COLORS.border,
     borderWidth: 1,
-    borderRadius: 8,
+    borderRadius: 10,
     padding: 10,
-    color: "#111827",
+    color: COLORS.primary,
   },
 
+  /* ---------- Grid ---------- */
   grid: {
     flexDirection: "row",
     flexWrap: "wrap",
     gap: 12,
   },
 
+  /* ---------- Skill Card ---------- */
   skillCard: {
-    backgroundColor: "#ffffff",
+    backgroundColor: COLORS.card,
     width: "48%",
-    borderRadius: 12,
+    borderRadius: 14,
     padding: 12,
     borderWidth: 1,
-    borderColor: "#e5e7eb",
+    borderColor: COLORS.border,
     elevation: 2,
     shadowColor: "#000",
     shadowOpacity: 0.05,
@@ -432,42 +462,47 @@ const styles = StyleSheet.create({
 
   skillName: {
     fontWeight: "700",
-    color: "#111827",
+    color: COLORS.primary,
   },
 
   skillCategory: {
-    color: "#6b7280",
+    color: COLORS.muted,
     fontSize: 12,
     marginTop: 2,
   },
 
-  starsRow: { flexDirection: "row", marginTop: 6 },
+  /* ---------- Stars ---------- */
+  starsRow: {
+    flexDirection: "row",
+    marginTop: 6,
+  },
 
   experienceText: {
-    color: "#374151",
+    color: COLORS.primary,
     fontSize: 12,
     marginTop: 6,
   },
 
   notesText: {
     fontStyle: "italic",
-    color: "#6b7280",
+    color: COLORS.muted,
     fontSize: 12,
     marginTop: 4,
   },
 
   lastUsedText: {
-    color: "#6b7280",
+    color: COLORS.muted,
     fontSize: 12,
     marginTop: 4,
   },
 
   noSkillsText: {
     textAlign: "center",
-    color: "#6b7280",
+    color: COLORS.muted,
     marginTop: 20,
   },
 
+  /* ---------- Modal ---------- */
   modalOverlay: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.35)",
@@ -476,31 +511,31 @@ const styles = StyleSheet.create({
   },
 
   modalCard: {
-    backgroundColor: "#ffffff",
+    backgroundColor: COLORS.card,
     padding: 20,
-    borderRadius: 12,
+    borderRadius: 16,
     elevation: 4,
   },
 
   modalTitle: {
     fontSize: 18,
     fontWeight: "700",
-    color: "#111827",
+    color: COLORS.primary,
     marginBottom: 12,
   },
 
   modalInput: {
-    backgroundColor: "#ffffff",
-    borderColor: "#d1d5db",
+    backgroundColor: COLORS.card,
+    borderColor: COLORS.border,
     borderWidth: 1,
-    borderRadius: 8,
+    borderRadius: 10,
     padding: 10,
-    color: "#111827",
+    color: COLORS.primary,
     marginBottom: 12,
   },
 
   label: {
-    color: "#111827",
+    color: COLORS.primary,
     fontWeight: "600",
     marginBottom: 6,
   },
@@ -510,37 +545,27 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
 
+  /* ---------- Modal Buttons ---------- */
   saveButton: {
-    backgroundColor: "#0A1A4F",
+    backgroundColor: COLORS.primary,
     padding: 12,
-    borderRadius: 8,
+    borderRadius: 10,
     alignItems: "center",
     marginBottom: 10,
   },
-
   saveButtonText: {
-    color: "#fff",
+    color: "#ffffff",
     fontWeight: "700",
   },
 
   cancelButton: {
     padding: 12,
-    borderRadius: 8,
-    backgroundColor: "#e5e7eb",
+    borderRadius: 10,
+    backgroundColor: COLORS.border,
     alignItems: "center",
   },
   cancelButtonText: {
-    color: "#111827",
+    color: COLORS.primary,
     fontWeight: "700",
-  },
-
-  loadingContainer: {
-    flex: 1,
-    justifyContent: "center",
-    backgroundColor: "#f9fafb",
-  },
-    row: {
-    flexDirection: "row",
-    gap: 10,
   },
 });

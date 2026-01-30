@@ -12,6 +12,20 @@ import {
 } from "react-native"
 import { supabase } from "../../src/lib/supabase"
 
+/* =========================
+   THEME COLORS
+========================= */
+const COLORS = {
+  primary: "#1b2a41",   // deep navy
+  accent: "#ff6b6b",    // coral
+  bg: "#ffffff",
+  muted: "#6B7280",
+  border: "#E5E7EB",
+  textDark: "#111827",
+  textBody: "#374151",
+  inputBg: "#F3F4F6",
+}
+
 /* ---------------- TYPES ---------------- */
 
 type Role = "manager" | "employee"
@@ -27,7 +41,7 @@ type Announcement = {
 
 type Props = {
   role: Role
-  selectedMonth: Date   // ✅ NEW
+  selectedMonth: Date
 }
 
 /* ---------------- HELPERS ---------------- */
@@ -47,19 +61,11 @@ function getStatus(
   return "active"
 }
 
-/* ✅ Month overlap check (same logic as web) */
-function overlapsMonth(
-  start: string,
-  end: string,
-  month: Date
-) {
+function overlapsMonth(start: string, end: string, month: Date) {
   const monthStart = new Date(month.getFullYear(), month.getMonth(), 1)
   const monthEnd = new Date(month.getFullYear(), month.getMonth() + 1, 0)
 
-  return (
-    new Date(start) <= monthEnd &&
-    new Date(end) >= monthStart
-  )
+  return new Date(start) <= monthEnd && new Date(end) >= monthStart
 }
 
 /* ---------------- COMPONENT ---------------- */
@@ -78,7 +84,6 @@ export default function Announcements({ role, selectedMonth }: Props) {
     end_date: "",
   })
 
-  /* 🔁 Reload when month OR role changes */
   useEffect(() => {
     loadAnnouncements()
   }, [role, selectedMonth])
@@ -97,7 +102,6 @@ export default function Announcements({ role, selectedMonth }: Props) {
       return
     }
 
-    /* 🔹 Role-based filtering */
     const roleFiltered =
       role === "employee"
         ? data?.filter(
@@ -105,7 +109,6 @@ export default function Announcements({ role, selectedMonth }: Props) {
           )
         : data
 
-    /* 🔹 Month-based filtering */
     const monthFiltered = roleFiltered?.filter(a =>
       overlapsMonth(a.start_date, a.end_date, selectedMonth)
     )
@@ -115,25 +118,16 @@ export default function Announcements({ role, selectedMonth }: Props) {
   }
 
   async function saveAnnouncement() {
-    if (
-      !form.title ||
-      !form.content ||
-      !form.start_date ||
-      !form.end_date
-    ) {
+    if (!form.title || !form.content || !form.start_date || !form.end_date) {
       Alert.alert("Missing fields", "All fields are required")
       return
     }
 
     const query = editingId
-      ? supabase
-          .from("announcements")
-          .update(form)
-          .eq("id", editingId)
+      ? supabase.from("announcements").update(form).eq("id", editingId)
       : supabase.from("announcements").insert(form)
 
     const { error } = await query
-
     if (error) {
       Alert.alert("Error", "Failed to save announcement")
       return
@@ -185,7 +179,7 @@ export default function Announcements({ role, selectedMonth }: Props) {
       </View>
 
       {loading ? (
-        <ActivityIndicator />
+        <ActivityIndicator color={COLORS.accent} />
       ) : announcements.length === 0 ? (
         <Text style={styles.empty}>No announcements for this month</Text>
       ) : (
@@ -195,30 +189,32 @@ export default function Announcements({ role, selectedMonth }: Props) {
 
             return (
               <View key={a.id} style={styles.item}>
-                {role === "manager" && (
-                  <View style={styles.actions}>
-                    <TouchableOpacity
-                      onPress={() => {
-                        setEditingId(a.id)
-                        setForm({
-                          title: a.title,
-                          content: a.content,
-                          start_date: a.start_date,
-                          end_date: a.end_date,
-                        })
-                        setModalOpen(true)
-                      }}
-                    >
-                      <Text style={styles.edit}>✏️</Text>
-                    </TouchableOpacity>
+                <View style={styles.itemHeader}>
+                  <Text style={styles.itemTitle}>{a.title}</Text>
 
-                    <TouchableOpacity onPress={() => deleteAnnouncement(a.id)}>
-                      <Text style={styles.delete}>🗑</Text>
-                    </TouchableOpacity>
-                  </View>
-                )}
+                  {role === "manager" && (
+                    <View style={styles.actionsInline}>
+                      <TouchableOpacity
+                        onPress={() => {
+                          setEditingId(a.id)
+                          setForm({
+                            title: a.title,
+                            content: a.content,
+                            start_date: a.start_date,
+                            end_date: a.end_date,
+                          })
+                          setModalOpen(true)
+                        }}
+                      >
+                        <Text style={styles.edit}>✏️</Text>
+                      </TouchableOpacity>
 
-                <Text style={styles.itemTitle}>{a.title}</Text>
+                      <TouchableOpacity onPress={() => deleteAnnouncement(a.id)}>
+                        <Text style={styles.delete}>🗑</Text>
+                      </TouchableOpacity>
+                    </View>
+                  )}
+                </View>
                 <Text style={styles.content}>{a.content}</Text>
 
                 <View style={styles.meta}>
@@ -297,39 +293,59 @@ export default function Announcements({ role, selectedMonth }: Props) {
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: "#fff",
+    backgroundColor: COLORS.bg,
     borderRadius: 16,
     padding: 16,
   },
+
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
     marginBottom: 10,
   },
-  title: { fontSize: 20, fontWeight: "700", color: "#0A1A4F" },
-  add: { fontWeight: "700", color: "#2563EB" },
-  empty: { textAlign: "center", color: "#6B7280" },
+
+  title: {
+    fontSize: 20,
+    fontWeight: "700",
+    color: COLORS.primary,
+  },
+
+  add: {
+    fontWeight: "700",
+    color: COLORS.accent,
+  },
+
+  empty: {
+    textAlign: "center",
+    color: COLORS.muted,
+  },
 
   item: {
     borderBottomWidth: 1,
-    borderColor: "#E5E7EB",
+    borderColor: COLORS.border,
     paddingVertical: 12,
-  },
-
-  actions: {
-    flexDirection: "row",
-    justifyContent: "flex-end",
-    gap: 12,
   },
 
   edit: { fontSize: 16 },
   delete: { fontSize: 16 },
 
-  itemTitle: { fontSize: 16, fontWeight: "700", color: "#111827" },
-  content: { color: "#374151", marginTop: 4 },
+  itemTitle: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: COLORS.textDark,
+  },
+
+  content: {
+    color: COLORS.textBody,
+    marginTop: 4,
+  },
 
   meta: { marginTop: 8 },
-  dates: { fontSize: 12, color: "#6B7280" },
+
+  dates: {
+    fontSize: 12,
+    color: COLORS.muted,
+  },
 
   badge: {
     alignSelf: "flex-start",
@@ -341,9 +357,9 @@ const styles = StyleSheet.create({
     color: "#fff",
   },
 
-  active: { backgroundColor: "#2563EB" },
-  upcoming: { backgroundColor: "#F97316" },
-  inactive: { backgroundColor: "#6B7280" },
+  active: { backgroundColor: COLORS.accent },
+  upcoming: { backgroundColor: COLORS.primary },
+  inactive: { backgroundColor: COLORS.muted },
 
   overlay: {
     flex: 1,
@@ -352,11 +368,21 @@ const styles = StyleSheet.create({
     padding: 20,
   },
 
-  modal: { backgroundColor: "#fff", borderRadius: 12, padding: 16 },
-  modalTitle: { fontSize: 18, fontWeight: "700", marginBottom: 12 },
+  modal: {
+    backgroundColor: COLORS.bg,
+    borderRadius: 12,
+    padding: 16,
+  },
+
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+    marginBottom: 12,
+    color: COLORS.primary,
+  },
 
   input: {
-    backgroundColor: "#F3F4F6",
+    backgroundColor: COLORS.inputBg,
     borderRadius: 6,
     padding: 10,
     marginBottom: 8,
@@ -364,7 +390,11 @@ const styles = StyleSheet.create({
 
   textarea: { height: 80 },
 
-  row: { flexDirection: "row", marginTop: 10 },
+  row: {
+    flexDirection: "row",
+    marginTop: 10,
+  },
+
   cancel: {
     flex: 1,
     backgroundColor: "#9CA3AF",
@@ -372,12 +402,30 @@ const styles = StyleSheet.create({
     borderRadius: 6,
     marginRight: 6,
   },
+
   save: {
     flex: 1,
-    backgroundColor: "#0A1A4F",
+    backgroundColor: COLORS.primary,
     padding: 12,
     borderRadius: 6,
     marginLeft: 6,
   },
-  btn: { color: "#fff", textAlign: "center", fontWeight: "700" },
+
+  btn: {
+    color: "#fff",
+    textAlign: "center",
+    fontWeight: "700",
+  },
+
+  itemHeader: {
+  flexDirection: "row",
+  alignItems: "center",
+  justifyContent: "space-between",
+},
+
+actionsInline: {
+  flexDirection: "row",
+  gap: 12,
+},
+
 })

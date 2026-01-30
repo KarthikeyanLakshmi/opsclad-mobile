@@ -1,10 +1,29 @@
 import React, { useState } from "react";
-import { View, Text, TextInput, Button, Alert, StyleSheet, Image, TouchableOpacity } from "react-native";
+import {
+  View,
+  Text,
+  TextInput,
+  Alert,
+  StyleSheet,
+  Image,
+  TouchableOpacity,
+  ActivityIndicator,
+} from "react-native";
 import { useRouter } from "expo-router";
 import { loginEmployee } from "../src/api/auth";
 import { LoadingOverlay } from "../src/components/loadingOverlay";
 
 const logo = require("../assets/images/opsclad-logo.png");
+
+/* =========================
+   THEME COLORS
+========================= */
+const COLORS = {
+  primary: "#1b2a41",   // deep navy
+  accent: "#ff6b6b",    // coral
+  white: "#ffffff",
+  muted: "#cbd5e1",
+};
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -22,7 +41,7 @@ export default function LoginScreen() {
 
       setLoading(true);
 
-      const result = await loginEmployee(email, password);
+      await loginEmployee(email, password);
 
       await new Promise((res) => setTimeout(res, 300));
 
@@ -40,70 +59,94 @@ export default function LoginScreen() {
 
       {/* Logo */}
       <Image source={logo} style={styles.logo} resizeMode="contain" />
+
+      {/* Email */}
       <TextInput
         style={styles.input}
         placeholder="Email"
-        placeholderTextColor="#cccccc"
+        placeholderTextColor={COLORS.muted}
         keyboardType="email-address"
         autoCapitalize="none"
         onChangeText={setEmail}
         value={email}
       />
 
+      {/* Password */}
       <TextInput
         style={styles.input}
         placeholder="Password"
-        placeholderTextColor="#cccccc"
+        placeholderTextColor={COLORS.muted}
         secureTextEntry
         onChangeText={setPassword}
         value={password}
       />
 
-      <Button
-        title={loading ? "Logging in..." : "Login"}
+      {/* Login Button */}
+      <TouchableOpacity
+        style={[styles.loginBtn, loading && { opacity: 0.7 }]}
         onPress={handleLogin}
         disabled={loading}
-      />
-      
+      >
+        {loading ? (
+          <ActivityIndicator color={COLORS.white} />
+        ) : (
+          <Text style={styles.loginText}>Login</Text>
+        )}
+      </TouchableOpacity>
+
+      {/* Forgot password */}
       <TouchableOpacity onPress={() => router.push("/resetPassword")}>
-        <Text style={{ color: "#f97316", marginTop: 14 }}>
-          Forgot Password?
-        </Text>
+        <Text style={styles.forgotText}>Forgot Password?</Text>
       </TouchableOpacity>
     </View>
   );
 }
 
+/* =========================
+   STYLES
+========================= */
 const styles = StyleSheet.create({
-  container: { 
+  container: {
     flex: 1,
-    backgroundColor: "#0A1A4F", // dark blue
-    paddingBottom: "90%",
+    backgroundColor: COLORS.primary,
     padding: 24,
-    justifyContent: "center"
+    justifyContent: "center",
   },
 
   logo: {
     width: "70%",
     height: 120,
     alignSelf: "center",
-    marginBottom: 20,
-  },
-
-  title: {
-    fontSize: 28,
-    fontWeight: "bold",
-    textAlign: "center",
-    marginBottom: 40,
-    color: "white",
+    marginBottom: 30,
   },
 
   input: {
     borderWidth: 1,
-    borderColor: "white",
+    borderColor: COLORS.white,
     padding: 14,
-    borderRadius: 8,
+    borderRadius: 10,
     marginBottom: 15,
-    color: "white",
+    color: COLORS.white,
+  },
+
+  loginBtn: {
+    backgroundColor: COLORS.accent,
+    paddingVertical: 14,
+    borderRadius: 10,
+    alignItems: "center",
+    marginTop: 8,
+  },
+
+  loginText: {
+    color: COLORS.white,
+    fontSize: 16,
+    fontWeight: "700",
+  },
+
+  forgotText: {
+    color: COLORS.accent,
+    textAlign: "center",
+    marginTop: 18,
+    fontWeight: "600",
   },
 });

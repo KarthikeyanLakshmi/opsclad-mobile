@@ -63,6 +63,18 @@ interface Employee {
   email_id: string;
 }
 
+const COLORS = {
+  primary: "#1b2a41",   // navy
+  accent: "#ff6b6b",    // coral
+  bg: "#f4f4f5",
+  card: "#ffffff",
+  muted: "#6b7280",
+  border: "#e5e7eb",
+  success: "#16a34a",
+  warning: "#ca8a04",
+  danger: "#dc2626",
+};
+
 /* ------------------------- MAIN SCREEN ------------------------- */
 export default function EmployeePTOTrackingScreen() {
   const [ptoRecords, setPtoRecords] = useState<PTORecord[]>([]);
@@ -222,7 +234,7 @@ export default function EmployeePTOTrackingScreen() {
     } finally {
       setLoading(false);
     }
-  };
+  }; 
 
   useEffect(() => {
     loadPTORecords();
@@ -413,7 +425,7 @@ export default function EmployeePTOTrackingScreen() {
               style={styles.backButton}
               onPress={() => router.push("/(tabs)/home")}
             >
-              <Feather name="arrow-left" size={22} color="#111" />
+              <Feather name="arrow-left" size={22} color={COLORS.primary} />
             </TouchableOpacity>
             <Text style={styles.headerTitle}>My Leave Tracking</Text>
           </View>
@@ -452,7 +464,7 @@ export default function EmployeePTOTrackingScreen() {
               style={[styles.btnPrimary, { backgroundColor: "#0A1A4F" }]}
               onPress={() => setIsPTORequestOpen(true)}
             >
-              <Ionicons name="add-circle-outline" size={16} color="white" />
+              <Ionicons name="add-circle-outline" size={16} color={COLORS.accent} />
               <Text style={styles.btnText}>
                 {isPtoDepletedForUi ? "Request Non-PTO Leave" : "Request Leave"}
               </Text>
@@ -843,39 +855,53 @@ export default function EmployeePTOTrackingScreen() {
 /* ------------------------- STYLES ------------------------- */
 
 const styles = StyleSheet.create({
+  /* ---------- Layout ---------- */
   container: {
     flex: 1,
     padding: 14,
+    backgroundColor: COLORS.bg,
   },
   center: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
+    backgroundColor: COLORS.bg,
   },
 
-  header: {
+  row: {
     flexDirection: "row",
-    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 10,
+    gap: 10,
+  },
+
+  backButton: {
+    padding: 6,
+    borderRadius: 20,
+  },
+
+  /* ---------- Header ---------- */
+  header: {
     marginBottom: 8,
   },
   headerTitle: {
     fontSize: 20,
     fontWeight: "700",
-    color: "#111827",
+    color: COLORS.primary,
   },
   headerSubtitle: {
     fontSize: 12,
-    color: "#6b7280",
+    color: COLORS.muted,
     marginTop: 2,
   },
 
+  /* ---------- Year + Action ---------- */
   yearActionRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    marginBottom: 12,
+    marginBottom: 14,
   },
-
   yearRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -883,25 +909,21 @@ const styles = StyleSheet.create({
   yearBtn: {
     padding: 6,
     borderRadius: 20,
-    backgroundColor: "#e5e7eb",
+    backgroundColor: COLORS.border,
   },
   yearText: {
     marginHorizontal: 10,
     fontWeight: "600",
-    color: "#111827",
+    color: COLORS.primary,
   },
 
-  actionRow: {
-    flexDirection: "row",
-    justifyContent: "flex-end",
-    marginBottom: 12,
-  },
   btnPrimary: {
     flexDirection: "row",
     alignItems: "center",
     paddingVertical: 8,
     paddingHorizontal: 14,
-    borderRadius: 8,
+    borderRadius: 10,
+    backgroundColor: COLORS.primary,
   },
   btnText: {
     color: "#ffffff",
@@ -910,58 +932,59 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
 
+  /* ---------- Tabs ---------- */
   tabs: {
     flexDirection: "row",
-    backgroundColor: "#e5e7eb",
-    borderRadius: 20,
+    backgroundColor: COLORS.border,
+    borderRadius: 22,
     padding: 4,
-    marginBottom: 10,
+    marginBottom: 12,
   },
   tab: {
     flex: 1,
-    paddingVertical: 6,
+    paddingVertical: 7,
     alignItems: "center",
-    borderRadius: 20,
+    borderRadius: 18,
   },
   activeTab: {
-    backgroundColor: "#ffffff",
+    backgroundColor: COLORS.card,
   },
   tabText: {
     fontSize: 12,
-    color: "#6b7280",
+    color: COLORS.muted,
     fontWeight: "500",
   },
   tabTextActive: {
-    color: "#111827",
+    color: COLORS.primary,
     fontWeight: "700",
   },
 
+  /* ---------- Filters ---------- */
   filterRow: {
     flexDirection: "row",
     gap: 10,
-    marginBottom: 10,
+    marginBottom: 12,
   },
   label: {
     fontSize: 12,
-    color: "#4b5563",
+    color: COLORS.muted,
     marginBottom: 4,
   },
   input: {
-    backgroundColor: "#ffffff",
+    backgroundColor: COLORS.card,
     borderWidth: 1,
-    borderColor: "#e5e7eb",
-    borderRadius: 8,
+    borderColor: COLORS.border,
+    borderRadius: 10,
     paddingHorizontal: 10,
     paddingVertical: 8,
-    fontSize: 13,
-    color: "#111827",
   },
 
+  /* ---------- Cards ---------- */
   card: {
-    backgroundColor: "#ffffff",
-    borderRadius: 12,
+    backgroundColor: COLORS.card,
+    borderRadius: 14,
     padding: 14,
-    marginBottom: 12,
+    marginBottom: 14,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.06,
@@ -971,42 +994,47 @@ const styles = StyleSheet.create({
   cardTitle: {
     fontSize: 16,
     fontWeight: "600",
-    color: "#111827",
+    color: COLORS.primary,
   },
   cardSubtitle: {
     fontSize: 12,
-    color: "#6b7280",
+    color: COLORS.muted,
     marginTop: 2,
   },
 
+  /* ---------- Records ---------- */
   recordRow: {
     flexDirection: "row",
     alignItems: "center",
     paddingVertical: 10,
     borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
   },
+
   badgeSmall: {
-    paddingHorizontal: 6,
+    paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 999,
-    backgroundColor: "#eff6ff",
+    backgroundColor: `${COLORS.primary}15`,
     marginHorizontal: 4,
   },
 
   statusBadge: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 6,
+    paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 999,
   },
   statusText: {
     marginLeft: 4,
     fontSize: 11,
-    color: "#111827",
+    color: COLORS.primary,
     textTransform: "capitalize",
+    fontWeight: "600",
   },
 
+  /* ---------- Summary ---------- */
   summaryRow: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -1014,26 +1042,28 @@ const styles = StyleSheet.create({
   },
   summaryLabel: {
     fontSize: 12,
-    color: "#6b7280",
+    color: COLORS.muted,
   },
   summaryValue: {
     fontSize: 12,
-    fontWeight: "600",
-    color: "#111827",
+    fontWeight: "700",
+    color: COLORS.primary,
   },
 
+  /* ---------- Progress Bar ---------- */
   barBg: {
     marginTop: 10,
-    height: 10,
+    height: 12,
     borderRadius: 999,
-    backgroundColor: "#e5e7eb",
+    backgroundColor: COLORS.border,
     overflow: "hidden",
   },
   barFill: {
-    height: 10,
-    backgroundColor: "#16a34a",
+    height: 12,
+    backgroundColor: COLORS.primary,
   },
 
+  /* ---------- Modal ---------- */
   modalOverlay: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.4)",
@@ -1041,47 +1071,36 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   modalBox: {
-    backgroundColor: "#f9fafb",
-    borderRadius: 12,
+    backgroundColor: COLORS.card,
+    borderRadius: 16,
     padding: 16,
   },
   modalTitle: {
     fontSize: 16,
-    fontWeight: "600",
-    color: "#111827",
-    marginBottom: 8,
+    fontWeight: "700",
+    color: COLORS.primary,
+    marginBottom: 10,
   },
   modalInput: {
-    backgroundColor: "#ffffff",
+    backgroundColor: COLORS.card,
     borderWidth: 1,
-    borderColor: "#e5e7eb",
-    borderRadius: 8,
+    borderColor: COLORS.border,
+    borderRadius: 10,
     paddingHorizontal: 10,
     paddingVertical: 8,
-    fontSize: 13,
-    color: "#111827",
     marginBottom: 10,
   },
   modalButtons: {
     flexDirection: "row",
     justifyContent: "flex-end",
-    marginTop: 8,
+    marginTop: 10,
     gap: 10,
   },
   modalBtn: {
     borderWidth: 1,
-    borderRadius: 8,
-    paddingHorizontal: 12,
+    borderColor: COLORS.border,
+    borderRadius: 10,
+    paddingHorizontal: 14,
     paddingVertical: 8,
-  },
-
-  backButton: {
-    padding: 6,
-  },
-  row: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 10,
-    gap: 10,
   },
 });

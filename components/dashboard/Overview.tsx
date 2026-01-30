@@ -7,8 +7,8 @@ import {
   TouchableOpacity,
 } from "react-native"
 import { LinearGradient } from "expo-linear-gradient"
-import Announcements from "../dashboard/Announcement"
-import UpcomingEvents from "../dashboard/UpcomingEvents"
+import Announcements from "./Announcement"
+import UpcomingEvents from "./UpcomingEvents"
 
 type Role = "manager" | "employee"
 
@@ -16,16 +16,22 @@ type Props = {
   role: Role
 }
 
+const COLORS = {
+  primary: "#1b2a41",
+  accent: "#ff6b6b",
+  bg: "#F3F4F6",
+  card: "#FFFFFF",
+}
+
 export default function OverviewTab({ role }: Props) {
-  /* ---------------- MONTH STATE ---------------- */
   const [selectedMonth, setSelectedMonth] = useState(
     new Date(new Date().getFullYear(), new Date().getMonth(), 1)
   )
 
-  const changeMonth = (direction: "prev" | "next") => {
+  const changeMonth = (dir: "prev" | "next") => {
     setSelectedMonth(prev => {
       const d = new Date(prev)
-      d.setMonth(d.getMonth() + (direction === "prev" ? -1 : 1))
+      d.setMonth(d.getMonth() + (dir === "prev" ? -1 : 1))
       return d
     })
   }
@@ -35,12 +41,11 @@ export default function OverviewTab({ role }: Props) {
     year: "numeric",
   })
 
-  /* ---------------- UI ---------------- */
   return (
     <View style={styles.screen}>
-      {/* 🌈 GRADIENT MONTH HEADER */}
+      {/* MONTH HEADER */}
       <LinearGradient
-        colors={["#ff6b6b", "#1b2a41"]}
+        colors={[COLORS.accent, COLORS.primary]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 0 }}
         style={styles.monthGradient}
@@ -61,18 +66,16 @@ export default function OverviewTab({ role }: Props) {
 
       {/* MAIN CARD */}
       <View style={styles.card}>
-        {/* 🔒 ANNOUNCEMENTS — MAX 50% */}
-        <View style={styles.topHalf}>
-          <ScrollView showsVerticalScrollIndicator>
-            <Announcements
-              role={role}
-              selectedMonth={selectedMonth}
-            />
+        <View style={styles.section}>
+          <ScrollView showsVerticalScrollIndicator={false}>
+            <Announcements role={role} selectedMonth={selectedMonth} />
           </ScrollView>
         </View>
 
-        {/* 🔒 EVENTS — MAX 50% */}
-        <View style={styles.bottomHalf}>
+        {/* DIVIDER */}
+        <View style={styles.divider} />
+
+        <View style={styles.section}>
           <ScrollView showsVerticalScrollIndicator={false}>
             <UpcomingEvents selectedMonth={selectedMonth} />
           </ScrollView>
@@ -82,32 +85,27 @@ export default function OverviewTab({ role }: Props) {
   )
 }
 
-/* ---------------- STYLES ---------------- */
-
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
     paddingHorizontal: 16,
-    paddingTop: 12,
-    paddingBottom: 8,
   },
 
-  /* 🌈 Gradient month header */
   monthGradient: {
     borderRadius: 16,
     paddingVertical: 12,
     paddingHorizontal: 16,
     flexDirection: "row",
-    alignItems: "center",
     justifyContent: "space-between",
+    alignItems: "center",
+    marginTop: 12,
     marginBottom: 12,
   },
 
   arrow: {
-    fontSize: 20,
+    color: "#fff",
+    fontSize: 18,
     fontWeight: "800",
-    color: "#ffffff",
-    paddingHorizontal: 6,
   },
 
   monthCenter: {
@@ -115,37 +113,33 @@ const styles = StyleSheet.create({
   },
 
   overviewLabel: {
-    fontSize: 12,
+    fontSize: 11,
     letterSpacing: 2,
     color: "rgba(255,255,255,0.8)",
     fontWeight: "700",
-    textTransform: "uppercase",
   },
 
   monthText: {
     fontSize: 20,
     fontWeight: "800",
-    color: "#ffffff",
+    color: "#fff",
   },
 
-  /* Card container */
   card: {
     flex: 1,
-    backgroundColor: "#fff",
-    borderRadius: 30,
+    backgroundColor: COLORS.card,
+    borderRadius: 24,
     overflow: "hidden",
   },
 
-  /* 🔒 Hard 50% caps */
-  topHalf: {
+  section: {
+    padding: 12,
     maxHeight: "50%",
-    paddingHorizontal: 12,
-    paddingTop: 12,
   },
 
-  bottomHalf: {
-    maxHeight: "50%",
-    paddingHorizontal: 12,
-    paddingTop: 6,
-  },
+  divider: {
+      height: 2,                 // 👈 thickness
+    backgroundColor: "#CBD5E1",
+    marginHorizontal: 16,
+  }
 })

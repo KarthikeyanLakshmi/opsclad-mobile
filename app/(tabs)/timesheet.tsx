@@ -1,10 +1,23 @@
 import React, { useEffect, useState } from "react";
-import { View, ActivityIndicator } from "react-native";
+import {
+  View,
+  ActivityIndicator,
+  StyleSheet,
+} from "react-native";
 import { supabase } from "../../src/lib/supabase";
 
 // Manager and Employee screens
-import ExtractionIndex from "../../components/manager/extraction-index"; 
+import ExtractionIndex from "../../components/manager/extraction-index";
 import TimesheetTracker from "../../components/employee/timesheet-tracker";
+
+/* =========================
+   THEME COLORS
+========================= */
+const COLORS = {
+  primary: "#1b2a41",   // deep navy
+  accent: "#ff6b6b",    // coral
+  bg: "#F3F4F6",
+};
 
 export default function TimesheetScreen() {
   const [role, setRole] = useState<string | null>(null);
@@ -15,7 +28,7 @@ export default function TimesheetScreen() {
       try {
         const { data: auth, error: authError } = await supabase.auth.getUser();
         if (authError || !auth?.user) {
-          setRole("employee"); // default
+          setRole("employee");
           setLoading(false);
           return;
         }
@@ -38,20 +51,35 @@ export default function TimesheetScreen() {
     loadRole();
   }, []);
 
-  // Loading UI
+  /* -------------------------
+     LOADING STATE
+  ------------------------- */
   if (loading) {
     return (
-      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-        <ActivityIndicator size={30} color="#0A1A4F" />
+      <View style={styles.center}>
+        <ActivityIndicator size="large" color={COLORS.accent} />
       </View>
     );
   }
 
-  // MANAGER → ExtractionIndex
+  /* -------------------------
+     ROLE-BASED VIEW
+  ------------------------- */
   if (role === "manager") {
     return <ExtractionIndex />;
   }
 
-  // EMPLOYEE → TimesheetTracker
   return <TimesheetTracker />;
 }
+
+/* =========================
+   STYLES
+========================= */
+const styles = StyleSheet.create({
+  center: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: COLORS.bg,
+  },
+});

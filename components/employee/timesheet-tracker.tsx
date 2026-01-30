@@ -387,8 +387,8 @@ export default function EmployeeReportsScreen() {
                 <View
                   style={[
                     styles.activityBadge,
-                    d.activity === "WORK" && { backgroundColor: "#d1e7ff" },
-                    d.activity === "PTO" && { backgroundColor: "#ffe0e0" },
+                    d.activity === "WORK" && { backgroundColor: COLORS.workBg },
+                    d.activity === "PTO" && { backgroundColor: COLORS.ptoBg },
                   ]}
                 >
                   <Text style={styles.activityText}>{d.activity}</Text>
@@ -418,98 +418,125 @@ export default function EmployeeReportsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { padding: 12, backgroundColor: "#f6f6f6" },
+const COLORS = {
+  primary: "#1b2a41", // navy
+  accent: "#ff6b6b",  // coral
+  bg: "#f4f4f5",
+  card: "#ffffff",
+  muted: "#6b7280",
+  border: "#e5e7eb",
+  workBg: "#e6f0ff",
+  ptoBg: "#ffecec",
+};
 
+const styles = StyleSheet.create({
+  container: {
+    padding: 12,
+    backgroundColor: COLORS.bg,
+  },
+
+  /* ---------- Header ---------- */
   headerRow: {
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
     marginBottom: 16,
   },
+
   pageTitle: {
     fontSize: 22,
     fontWeight: "700",
-    color: "#0A1A4F",
+    color: COLORS.primary,
   },
 
+  /* ---------- Filter Card ---------- */
   filterCard: {
-    backgroundColor: "#fff",
+    backgroundColor: COLORS.card,
     padding: 16,
-    borderRadius: 12,
+    borderRadius: 14,
     marginBottom: 20,
-    borderTopWidth: 4,
     borderLeftWidth: 4,
-    borderRightWidth: 4,
-    borderColor: "#0A1A4F",
+    borderColor: COLORS.primary,
   },
 
   cardHeader: {
     fontSize: 18,
     fontWeight: "700",
-    color: "#0A1A4F",
+    color: COLORS.primary,
     marginBottom: 10,
   },
 
-  label: { color: "#333", fontWeight: "600", marginBottom: 4 },
-
   dropdownWrapper: {
     borderWidth: 1,
-    borderColor: "#ccc",
-    borderRadius: 8,
+    borderColor: COLORS.border,
+    borderRadius: 10,
     marginBottom: 12,
-    backgroundColor: "#fff",
+    backgroundColor: COLORS.card,
+    overflow: "hidden",
   },
-
-  picker: { width: "100%" },
 
   dateInput: {
     borderWidth: 1,
-    borderColor: "#ccc",
-    borderRadius: 8,
+    borderColor: COLORS.border,
+    borderRadius: 10,
     padding: 12,
     marginBottom: 12,
-    backgroundColor: "#fff",
+    backgroundColor: COLORS.card,
   },
 
-  dateText: { color: "#333" },
+  dateText: {
+    color: COLORS.primary,
+  },
 
-  row: { flexDirection: "row", gap: 10 },
+  row: {
+    flexDirection: "row",
+    gap: 10,
+  },
 
   applyBtn: {
     flex: 1,
-    backgroundColor: "#0A1A4F",
+    backgroundColor: COLORS.primary,
     padding: 12,
-    borderRadius: 8,
+    borderRadius: 10,
   },
+
   clearBtn: {
     flex: 1,
-    backgroundColor: "#777",
+    backgroundColor: COLORS.accent,
     padding: 12,
-    borderRadius: 8,
+    borderRadius: 10,
   },
-  btnText: { textAlign: "center", color: "#fff", fontWeight: "700" },
 
+  btnText: {
+    textAlign: "center",
+    color: "#ffffff",
+    fontWeight: "700",
+  },
+
+  /* ---------- Summary ---------- */
   summaryCard: {
-    backgroundColor: "#fff",
+    backgroundColor: COLORS.card,
     padding: 16,
-    borderRadius: 12,
+    borderRadius: 14,
     marginBottom: 20,
     borderLeftWidth: 4,
-    borderRightWidth: 4,
-    borderColor: "#0A1A4F",
+    borderColor: COLORS.primary,
   },
 
-  summaryText: { fontSize: 14, marginBottom: 4, color: "#333" },
+  summaryText: {
+    fontSize: 14,
+    marginBottom: 4,
+    color: COLORS.primary,
+  },
 
+  /* ---------- Results ---------- */
   resultsCard: {
-    backgroundColor: "#fff",
+    backgroundColor: COLORS.card,
     padding: 16,
-    borderRadius: 12,
+    borderRadius: 14,
     marginBottom: 30,
-    borderWidth: 4,
-    borderColor: "#0A1A4F",
-    borderTopWidth: 0,
+    borderLeftWidth: 4,
+    borderColor: COLORS.primary,
   },
 
   rowBetween: {
@@ -520,29 +547,34 @@ const styles = StyleSheet.create({
   },
 
   exportBtn: {
-    backgroundColor: "#0A1A4F",
+    backgroundColor: COLORS.accent,
     paddingVertical: 6,
     paddingHorizontal: 14,
-    borderRadius: 6,
+    borderRadius: 8,
   },
-  exportBtnText: { color: "#fff", fontWeight: "600" },
 
+  exportBtnText: {
+    color: "#ffffff",
+    fontWeight: "700",
+  },
+
+  /* ---------- Result Card ---------- */
   resultCard: {
-    backgroundColor: "#ffffff",
+    backgroundColor: COLORS.card,
     padding: 14,
-    borderRadius: 12,
+    borderRadius: 14,
     borderWidth: 1,
-    borderColor: "#e6e6e6",
+    borderColor: COLORS.border,
     marginBottom: 10,
     shadowColor: "#000",
-    shadowOpacity: 0.06,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 3 },
-    elevation: 3,
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 2,
   },
 
   resultCardAlt: {
-    backgroundColor: "#f7faff",
+    backgroundColor: "#f8fafc",
   },
 
   resultHeaderRow: {
@@ -555,64 +587,48 @@ const styles = StyleSheet.create({
   resultHeaderDate: {
     fontSize: 15,
     fontWeight: "700",
-    color: "#0A1A4F",
+    color: COLORS.primary,
   },
 
   activityBadge: {
-    backgroundColor: "#e7e7e7",
     paddingVertical: 4,
     paddingHorizontal: 12,
-    borderRadius: 20,
+    borderRadius: 999,
   },
 
   activityText: {
     fontSize: 12,
     fontWeight: "700",
-    color: "#0A1A4F",
+    color: COLORS.primary,
   },
 
   resultRow: {
     flexDirection: "row",
-    justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: 6,
-  },
-
-  resultLabel: {
-    fontWeight: "600",
-    color: "#444",
-    fontSize: 13,
   },
 
   resultValue: {
     fontWeight: "500",
-    color: "#0A1A4F",
+    color: COLORS.primary,
     fontSize: 13,
   },
 
-  hoursBadge: {
-    marginTop: 10,
-    alignSelf: "flex-end",
-    backgroundColor: "#0A1A4F",
-    paddingVertical: 5,
-    paddingHorizontal: 12,
-    borderRadius: 20,
+  iconOnly: {
+    fontSize: 16,
+    marginRight: 6,
   },
 
-  hoursText: {
-    color: "white",
-    fontWeight: "700",
-    fontSize: 12,
-  },
-
+  /* ---------- Loading ---------- */
   loadingCenter: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
+    backgroundColor: COLORS.bg,
   },
-  loadingText: { marginTop: 10, color: "#111" },
-  
-  iconOnly: {
-  fontSize: 16,
-  marginRight: 6,
-},
+
+  loadingText: {
+    marginTop: 10,
+    color: COLORS.primary,
+  },
 });

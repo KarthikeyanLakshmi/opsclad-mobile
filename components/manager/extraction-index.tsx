@@ -4,10 +4,19 @@ import { View, Text, StyleSheet } from "react-native";
 // Only keep ReportsScreen
 import ReportsScreen from "./timesheet-components/reports";
 
+/* ---------------- THEME ---------------- */
+const COLORS = {
+  primary: "#1b2a41", // navy
+  accent: "#ff6b6b",  // coral
+  bg: "#f4f4f5",
+  card: "#ffffff",
+  border: "#e5e7eb",
+  text: "#111827",
+};
+
 export default function ExtractionIndex() {
   return (
     <View style={styles.container}>
-
       {/* HEADER */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Timesheet Reports</Text>
@@ -17,25 +26,30 @@ export default function ExtractionIndex() {
       <View style={{ flex: 1 }}>
         <ReportsScreen />
       </View>
-
     </View>
   );
 }
 
+/* ---------------- STYLES ---------------- */
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#f6f6f6" },
+  container: {
+    flex: 1,
+    backgroundColor: COLORS.bg,
+  },
 
   header: {
-    padding: 20,
+    paddingVertical: 18,
+    paddingHorizontal: 16,
     alignItems: "center",
-    backgroundColor: "#ffffff",
-    borderBottomWidth: 1,
-    borderColor: "#e5e7eb",
+    backgroundColor: COLORS.card,
+    borderBottomWidth: 2,
+    borderColor: COLORS.primary,
   },
 
   headerTitle: {
-    color: "#111827",
+    color: COLORS.primary,
     fontSize: 22,
-    fontWeight: "700",
+    fontWeight: "800",
+    letterSpacing: 0.4,
   },
 });

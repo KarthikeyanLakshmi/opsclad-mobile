@@ -1,4 +1,3 @@
-// app/home/index.tsx
 import React, { useEffect, useState } from "react"
 import {
   View,
@@ -9,9 +8,20 @@ import {
 } from "react-native"
 import { supabase } from "../../src/lib/supabase"
 
-// tabs
 import OverviewTab from "../../components/dashboard/Overview"
 import CalendarTab from "../../components/dashboard/Calendar"
+
+/* =========================
+   THEME COLORS
+========================= */
+const COLORS = {
+  primary: "#1b2a41",   // deep navy (header)
+  accent: "#ff6b6b",    // coral
+  bg: "#F3F4F6",        // app background
+  tabBg: "#E5E7EB",
+  muted: "#6B7280",
+  white: "#FFFFFF",
+}
 
 export default function HomeScreen() {
   const [loading, setLoading] = useState(true)
@@ -50,7 +60,7 @@ export default function HomeScreen() {
   if (loading) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator size="large" color="#0A1A4F" />
+        <ActivityIndicator size="large" color={COLORS.accent} />
       </View>
     )
   }
@@ -63,39 +73,43 @@ export default function HomeScreen() {
       {/* HEADER */}
       <View style={styles.header}>
         <Text style={styles.title}>DataClad</Text>
-
-        {/* INVERSE CURVE */}
-        <View style={styles.curveCut} />
       </View>
 
-      {/* TABS */}
-      <View style={styles.tabs}>
-        <TouchableOpacity
-          style={[styles.tab, tab === "overview" && styles.activeTab]}
-          onPress={() => setTab("overview")}
-        >
-          <Text style={tab === "overview" ? styles.activeText : styles.text}>
-            Overview
-          </Text>
-        </TouchableOpacity>
+      {/* CURVED CONTENT CARD */}
+      <View style={styles.contentCard}>
+        {/* TAB SELECTOR */}
+        <View style={styles.tabs}>
+          <TouchableOpacity
+            style={[styles.tab, tab === "overview" && styles.activeTab]}
+            onPress={() => setTab("overview")}
+          >
+            <Text
+              style={tab === "overview" ? styles.activeText : styles.text}
+            >
+              Overview
+            </Text>
+          </TouchableOpacity>
 
-        <TouchableOpacity
-          style={[styles.tab, tab === "calendar" && styles.activeTab]}
-          onPress={() => setTab("calendar")}
-        >
-          <Text style={tab === "calendar" ? styles.activeText : styles.text}>
-            Calendar
-          </Text>
-        </TouchableOpacity>
-      </View>
+          <TouchableOpacity
+            style={[styles.tab, tab === "calendar" && styles.activeTab]}
+            onPress={() => setTab("calendar")}
+          >
+            <Text
+              style={tab === "calendar" ? styles.activeText : styles.text}
+            >
+              Calendar
+            </Text>
+          </TouchableOpacity>
+        </View>
 
-      {/* CONTENT */}
-      <View style={{ flex: 1 }}>
-        {tab === "overview" ? (
-          <OverviewTab role={role} />
-        ) : (
-          <CalendarTab role={role} />
-        )}
+        {/* SCREEN CONTENT */}
+        <View style={{ flex: 1 }}>
+          {tab === "overview" ? (
+            <OverviewTab role={role} />
+          ) : (
+            <CalendarTab role={role} />
+          )}
+        </View>
       </View>
     </View>
   )
@@ -108,7 +122,7 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: "#F3F4F6",
+    backgroundColor: COLORS.primary, // header background
   },
 
   center: {
@@ -119,59 +133,57 @@ const styles = StyleSheet.create({
 
   /* HEADER */
   header: {
-    height: 140,
-    backgroundColor: "#0A1A4F",
+    height: 90,
     justifyContent: "center",
     alignItems: "center",
-    position: "relative", // 🔑 required for curve
+    backgroundColor: COLORS.primary,
   },
 
   title: {
     fontSize: 34,
     fontWeight: "800",
-    color: "#fff",
+    color: COLORS.white,
     letterSpacing: 1,
   },
 
-  /* INVERSE CURVE (concave) */
-  curveCut: {
-    position: "absolute",
-    bottom: -30,
-    alignSelf: "center",
-    width: "100%",
-    height: 60,
-    backgroundColor: "#F3F4F6", // MUST match screen bg
-    borderRadius: 999,
+  /* CURVED CONTENT AREA */
+  contentCard: {
+    flex: 1,
+    backgroundColor: COLORS.bg,
+    borderTopLeftRadius: 32,
+    borderTopRightRadius: 32,
+    paddingTop: 16,
+    overflow: "hidden", // 🔑 makes the curve work
   },
 
   /* TABS */
   tabs: {
     flexDirection: "row",
-    backgroundColor: "#e5e7eb",
+    backgroundColor: COLORS.tabBg,
     marginHorizontal: 16,
-    marginTop: 24, // space from curve
+    marginBottom: 8,
     borderRadius: 20,
     padding: 4,
   },
 
   tab: {
     flex: 1,
-    paddingVertical: 8,
+    paddingVertical: 10,
     alignItems: "center",
     borderRadius: 20,
   },
 
   activeTab: {
-    backgroundColor: "#ffffff",
+    backgroundColor: COLORS.white,
   },
 
   text: {
-    color: "#6b7280",
+    color: COLORS.muted,
     fontWeight: "600",
   },
 
   activeText: {
-    color: "#0A1A4F",
+    color: COLORS.accent,
     fontWeight: "700",
   },
 })

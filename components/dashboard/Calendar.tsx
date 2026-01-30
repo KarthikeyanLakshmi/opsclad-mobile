@@ -13,21 +13,31 @@ import { Calendar } from "react-native-calendars";
 import { supabase } from "../../src/lib/supabase";
 import { format } from "date-fns";
 
-/* =====================================================
+/* =========================
+   THEME
+========================= */
+const COLORS = {
+  primary: "#1b2a41",
+  accent: "#ff6b6b",
+  bg: "#F3F4F6",
+  card: "#ffffff",
+  modal: "#ffffff",
+  border: "#E5E7EB",
+  textDark: "#111827",
+  textMuted: "#6B7280",
+};
+
+/* =========================
    TYPES
-===================================================== */
+========================= */
 
 type Role = "manager" | "employee";
 
 type PTORecord = {
   id: string;
   date: string;
-  day?: string;
-  hours?: number;
   employee_name: string;
   employee_id: string;
-  sender_email?: string;
-  updated_at?: string;
   is_pto: boolean;
   status: "pending" | "approved" | "rejected";
 };
@@ -42,7 +52,6 @@ type HolidayRecord = {
   id: string;
   holiday: string;
   holiday_date: string;
-  holiday_description: string | null;
 };
 
 type SelectedDateInfo = {
@@ -52,31 +61,28 @@ type SelectedDateInfo = {
   holidays: HolidayRecord[];
 };
 
-type Props = {
-  role: Role;
-};
+type Props = { role: Role };
 
-/* =====================================================
+/* =========================
    HELPERS
-===================================================== */
+========================= */
 
-function normalizeDate(date: string | null): string | null {
+function normalizeDate(date: string | null) {
   if (!date) return null;
-  if (date.includes("T")) return date.split("T")[0];
-  return date;
+  return date.includes("T") ? date.split("T")[0] : date;
 }
 
-function expandRange(start: string, end: string): string[] {
+function expandRange(start: string, end: string) {
   const s = new Date(start);
   const e = new Date(end);
-  const arr: string[] = [];
+  const out: string[] = [];
   const cur = new Date(s);
 
   while (cur <= e) {
-    arr.push(cur.toISOString().split("T")[0]);
+    out.push(cur.toISOString().split("T")[0]);
     cur.setDate(cur.getDate() + 1);
   }
-  return arr;
+  return out;
 }
 
 function buildRanges(dates: string[]) {
@@ -103,9 +109,9 @@ function buildRanges(dates: string[]) {
   return ranges;
 }
 
-/* =====================================================
+/* =========================
    DATE DETAILS MODAL
-===================================================== */
+========================= */
 
 function DateDetailsModal({
   selectedDate,
@@ -117,14 +123,13 @@ function DateDetailsModal({
   if (!selectedDate) return null;
 
   return (
-    <Modal animationType="slide" transparent visible>
+    <Modal transparent animationType="slide">
       <View style={styles.overlay}>
         <View style={styles.modalCard}>
           <View style={styles.modalHeader}>
             <Text style={styles.modalHeaderText}>
               {format(selectedDate.date, "MMMM dd, yyyy")}
             </Text>
-
             <TouchableOpacity onPress={onClose}>
               <Text style={styles.close}>✖</Text>
             </TouchableOpacity>
@@ -132,50 +137,41 @@ function DateDetailsModal({
 
           <ScrollView style={styles.modalContent}>
             {selectedDate.birthdays.length > 0 && (
-              <View style={styles.section}>
-                <Text style={[styles.sectionTitle, { color: "#FFD54F" }]}>
-                  🎉 Birthdays
-                </Text>
-                {selectedDate.birthdays.map((emp) => (
-                  <View key={emp.id} style={[styles.itemBox, styles.yellowBox]}>
-                    <Text style={styles.itemName}>{emp.name}</Text>
-                  </View>
+              <Section title="🎉 Birthdays" color="#FACC15">
+                {selectedDate.birthdays.map((b) => (
+                  <Item key={b.id} bg="rgba(250,204,21,0.15)" text={b.name} />
                 ))}
-              </View>
+              </Section>
             )}
 
             {selectedDate.ptoRecords.length > 0 && (
-              <View style={styles.section}>
-                <Text style={[styles.sectionTitle, { color: "#81C784" }]}>
-                  👥 Employees on Leave
-                </Text>
-                {selectedDate.ptoRecords.map((rec) => (
-                  <View key={rec.id} style={[styles.itemBox, styles.greenBox]}>
-                    <Text style={styles.itemName}>{rec.employee_name}</Text>
-                  </View>
+              <Section title="👥 Employees on Leave" color="#22C55E">
+                {selectedDate.ptoRecords.map((p) => (
+                  <Item
+                    key={p.id}
+                    bg="rgba(34,197,94,0.15)"
+                    text={p.employee_name}
+                  />
                 ))}
-              </View>
+              </Section>
             )}
 
             {selectedDate.holidays.length > 0 && (
-              <View style={styles.section}>
-                <Text style={[styles.sectionTitle, { color: "#FFB74D" }]}>
-                  🎌 Public Holidays
-                </Text>
-                {selectedDate.holidays.map((hol) => (
-                  <View key={hol.id} style={[styles.itemBox, styles.orangeBox]}>
-                    <Text style={styles.itemName}>{hol.holiday}</Text>
-                  </View>
+              <Section title="🎌 Public Holidays" color={COLORS.accent}>
+                {selectedDate.holidays.map((h) => (
+                  <Item
+                    key={h.id}
+                    bg="rgba(255,107,107,0.15)"
+                    text={h.holiday}
+                  />
                 ))}
-              </View>
+              </Section>
             )}
 
             {selectedDate.birthdays.length === 0 &&
               selectedDate.ptoRecords.length === 0 &&
               selectedDate.holidays.length === 0 && (
-                <Text style={{ color: "#aaa", textAlign: "center" }}>
-                  No activity for this date
-                </Text>
+                <Text style={styles.emptyText}>No activity for this date</Text>
               )}
           </ScrollView>
         </View>
@@ -184,9 +180,30 @@ function DateDetailsModal({
   );
 }
 
-/* =====================================================
-   CALENDAR TAB (MAIN EXPORT)
-===================================================== */
+const Section = ({
+  title,
+  color,
+  children,
+}: {
+  title: string;
+  color: string;
+  children: React.ReactNode;
+}) => (
+  <View style={styles.section}>
+    <Text style={[styles.sectionTitle, { color }]}>{title}</Text>
+    {children}
+  </View>
+);
+
+const Item = ({ text, bg }: { text: string; bg: string }) => (
+  <View style={[styles.itemBox, { backgroundColor: bg }]}>
+    <Text style={styles.itemText}>{text}</Text>
+  </View>
+);
+
+/* =========================
+   CALENDAR TAB
+========================= */
 
 export default function CalendarTab({ role }: Props) {
   const [loading, setLoading] = useState(true);
@@ -233,17 +250,19 @@ export default function CalendarTab({ role }: Props) {
       .map((p) => normalizeDate(p.date)!);
 
     buildRanges(ptoDates).forEach((r) =>
-      expandRange(r.start, r.end).forEach((d) => addDot(d, "green"))
+      expandRange(r.start, r.end).forEach((d) =>
+        addDot(d, "#22C55E")
+      )
     );
 
     employees.forEach((e) => {
       const d = normalizeDate(e.birthday);
       if (!d) return;
       const [, mm, dd] = d.split("-");
-      addDot(`${year}-${mm}-${dd}`, "yellow");
+      addDot(`${year}-${mm}-${dd}`, "#FACC15");
     });
 
-    holidays.forEach((h) => addDot(h.holiday_date, "orange"));
+    holidays.forEach((h) => addDot(h.holiday_date, COLORS.accent));
 
     setMarkedDates(marks);
   }, [ptoRecords, employees, holidays]);
@@ -251,7 +270,7 @@ export default function CalendarTab({ role }: Props) {
   if (loading) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator size="large" color="#0A1A4F" />
+        <ActivityIndicator size="large" color={COLORS.primary} />
       </View>
     );
   }
@@ -273,10 +292,7 @@ export default function CalendarTab({ role }: Props) {
                   const d = normalizeDate(e.birthday);
                   if (!d) return false;
                   const [, mm, dd] = d.split("-");
-                  return (
-                    `${new Date().getFullYear()}-${mm}-${dd}` ===
-                    day.dateString
-                  );
+                  return `${new Date().getFullYear()}-${mm}-${dd}` === day.dateString;
                 }),
                 holidays: holidays.filter(
                   (h) => h.holiday_date === day.dateString
@@ -295,45 +311,76 @@ export default function CalendarTab({ role }: Props) {
   );
 }
 
-/* =====================================================
+/* =========================
    STYLES
-===================================================== */
+========================= */
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: "#F3F4F6" },
+  root: { flex: 1, backgroundColor: COLORS.bg },
   center: { flex: 1, justifyContent: "center", alignItems: "center" },
+
   card: {
     margin: 16,
-    backgroundColor: "#fff",
+    backgroundColor: COLORS.card,
     borderRadius: 16,
     padding: 15,
   },
+
   overlay: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.6)",
+    backgroundColor: "rgba(0,0,0,0.5)",
     justifyContent: "center",
     padding: 20,
   },
+
   modalCard: {
-    backgroundColor: "#1E1E1E",
-    borderRadius: 14,
+    backgroundColor: COLORS.modal,
+    borderRadius: 16,
     maxHeight: "85%",
   },
+
   modalHeader: {
-    padding: 20,
+    padding: 18,
     borderBottomWidth: 1,
-    borderBottomColor: "#333",
+    borderBottomColor: COLORS.border,
     flexDirection: "row",
     justifyContent: "space-between",
   },
-  modalHeaderText: { fontSize: 20, color: "#fff" },
-  close: { fontSize: 20, color: "#ccc" },
+
+  modalHeaderText: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: COLORS.primary,
+  },
+
+  close: {
+    fontSize: 18,
+    color: COLORS.textMuted,
+  },
+
   modalContent: { padding: 20 },
+
   section: { marginBottom: 20 },
-  sectionTitle: { fontSize: 17, fontWeight: "bold", marginBottom: 10 },
-  itemBox: { padding: 12, borderRadius: 10, marginBottom: 8 },
-  yellowBox: { backgroundColor: "rgba(255,214,79,0.2)" },
-  greenBox: { backgroundColor: "rgba(129,199,132,0.2)" },
-  orangeBox: { backgroundColor: "rgba(255,183,77,0.2)" },
-  itemName: { color: "#fff", fontSize: 16 },
+
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: "700",
+    marginBottom: 10,
+  },
+
+  itemBox: {
+    padding: 12,
+    borderRadius: 10,
+    marginBottom: 8,
+  },
+
+  itemText: {
+    color: COLORS.textDark,
+    fontSize: 16,
+  },
+
+  emptyText: {
+    textAlign: "center",
+    color: COLORS.textMuted,
+  },
 });

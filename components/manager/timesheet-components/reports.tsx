@@ -145,7 +145,7 @@ export default function ReportsScreen() {
   if (loading) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator size="large" color="#0A1A4F" />
+        <ActivityIndicator size="large" color={COLORS.primary} />
       </View>
     );
   }
@@ -378,52 +378,60 @@ export default function ReportsScreen() {
   );
 }
 
+const COLORS = {
+  primary: "#1b2a41", // navy
+  accent: "#ff6b6b",  // coral
+  bg: "#f4f4f5",
+  card: "#ffffff",
+  border: "#e5e7eb",
+  text: "#111827",
+  muted: "#6b7280",
+  soft: "#f8fafc",
+};
+
 const styles = StyleSheet.create({
   container: {
     padding: 12,
-    backgroundColor: "#f4f4f4",
+    backgroundColor: COLORS.bg,
   },
 
+  /* ---------------- CARDS ---------------- */
   card: {
-    backgroundColor: "#fff",
+    backgroundColor: COLORS.card,
     padding: 16,
-    borderRadius: 10,
+    borderRadius: 14,
     marginBottom: 12,
-
-    // 3-SIDE BLUE BORDER (left, top, right)
     borderLeftWidth: 5,
     borderTopWidth: 5,
     borderRightWidth: 5,
-    borderColor: "#0A1A4F",
+    borderColor: COLORS.primary,
   },
-  cardSummary: {
-    backgroundColor: "#fff",
-    padding: 16,
-    borderRadius: 10,
-    marginBottom: 12,
 
-    // 3-SIDE BLUE BORDER (left, top, right)
+  cardSummary: {
+    backgroundColor: COLORS.card,
+    padding: 16,
+    borderRadius: 14,
+    marginBottom: 12,
     borderLeftWidth: 5,
     borderRightWidth: 5,
-    borderColor: "#0A1A4F",
+    borderColor: COLORS.primary,
   },
-  cardResult: {
-    backgroundColor: "#fff",
-    padding: 16,
-    borderRadius: 10,
-    marginBottom: 12,
 
-    // 3-SIDE BLUE BORDER (left, top, right)
+  cardResult: {
+    backgroundColor: COLORS.card,
+    padding: 16,
+    borderRadius: 14,
+    marginBottom: 12,
     borderLeftWidth: 5,
     borderBottomWidth: 5,
     borderRightWidth: 5,
-    borderColor: "#0A1A4F",
+    borderColor: COLORS.primary,
   },
 
   sectionTitle: {
     fontSize: 16,
-    fontWeight: "700",
-    color: "#0A1A4F",
+    fontWeight: "800",
+    color: COLORS.primary,
     marginBottom: 8,
   },
 
@@ -431,26 +439,28 @@ const styles = StyleSheet.create({
     marginTop: 10,
     marginBottom: 4,
     fontWeight: "600",
-    color: "#333",
+    color: COLORS.text,
   },
 
+  /* ---------------- INPUTS ---------------- */
   dropdown: {
     borderWidth: 1,
-    borderColor: "#ccc",
-    borderRadius: 6,
-    backgroundColor: "#f2f2f2",
+    borderColor: COLORS.border,
+    borderRadius: 8,
+    backgroundColor: COLORS.soft,
     marginBottom: 8,
     overflow: "hidden",
   },
 
   dateButton: {
-    backgroundColor: "#f2f2f2",
+    backgroundColor: COLORS.soft,
     padding: 12,
-    borderRadius: 6,
+    borderRadius: 8,
     marginTop: 4,
     marginBottom: 12,
   },
 
+  /* ---------------- BUTTONS ---------------- */
   row: {
     flexDirection: "row",
     marginTop: 10,
@@ -459,24 +469,26 @@ const styles = StyleSheet.create({
 
   applyBtn: {
     flex: 1,
-    backgroundColor: "#0A1A4F",
+    backgroundColor: COLORS.primary,
     padding: 12,
-    borderRadius: 6,
+    borderRadius: 10,
   },
 
   clearBtn: {
     flex: 1,
-    backgroundColor: "gray",
+    backgroundColor: COLORS.accent,
     padding: 12,
-    borderRadius: 6,
+    borderRadius: 10,
   },
 
   btnText: {
-    color: "#fff",
+    color: "#ffffff",
     textAlign: "center",
-    fontWeight: "700",
+    fontWeight: "800",
+    letterSpacing: 0.3,
   },
 
+  /* ---------------- SUMMARY ---------------- */
   grid: {
     flexDirection: "row",
     flexWrap: "wrap",
@@ -485,137 +497,118 @@ const styles = StyleSheet.create({
   },
 
   statBox: {
-    backgroundColor: "#f8f8f8",
-    padding: 12,
-    borderRadius: 8,
+    backgroundColor: COLORS.soft,
+    padding: 14,
+    borderRadius: 12,
     width: "48%",
     alignItems: "center",
+    borderWidth: 1,
+    borderColor: COLORS.border,
   },
 
   statNumber: {
-    fontSize: 18,
-    fontWeight: "700",
-    color: "#0A1A4F",
+    fontSize: 20,
+    fontWeight: "800",
+    color: COLORS.primary,
   },
 
   statLabel: {
     fontSize: 12,
-    color: "#555",
+    color: COLORS.muted,
   },
 
-  rowItem: {
-    paddingVertical: 10,
-    paddingHorizontal: 6,
-    borderBottomWidth: 1,
-    borderColor: "#ddd",
+  /* ---------------- RESULTS ---------------- */
+  monthHeader: {
+    fontSize: 18,
+    fontWeight: "800",
+    color: COLORS.primary,
+    marginBottom: 6,
+    marginTop: 12,
   },
 
+  resultCard: {
+    backgroundColor: COLORS.card,
+    padding: 14,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    marginBottom: 10,
+    shadowColor: "#000",
+    shadowOpacity: 0.06,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 3,
+  },
+
+  resultCardAlt: {
+    backgroundColor: "#f7faff",
+  },
+
+  resultHeaderRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 10,
+  },
+
+  resultHeaderDate: {
+    fontSize: 15,
+    fontWeight: "800",
+    color: COLORS.primary,
+  },
+
+  activityBadge: {
+    backgroundColor: COLORS.soft,
+    paddingVertical: 4,
+    paddingHorizontal: 12,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+
+  activityText: {
+    fontSize: 12,
+    fontWeight: "800",
+    color: COLORS.primary,
+  },
+
+  resultRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 6,
+  },
+
+  resultValue: {
+    fontWeight: "500",
+    color: COLORS.primary,
+    fontSize: 13,
+  },
+
+  iconOnly: {
+    fontSize: 16,
+    marginRight: 6,
+  },
+
+  /* ---------------- EXPORT ---------------- */
   exportBtn: {
-    backgroundColor: "#0A1A4F",
-    padding: 12,
-    borderRadius: 6,
+    backgroundColor: COLORS.primary,
+    padding: 14,
+    borderRadius: 10,
     marginTop: 14,
   },
 
   exportText: {
-    color: "white",
+    color: "#ffffff",
     textAlign: "center",
-    fontWeight: "700",
+    fontWeight: "800",
+    letterSpacing: 0.3,
   },
 
+  /* ---------------- LOADING ---------------- */
   center: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
+    backgroundColor: COLORS.bg,
   },
-  monthHeader: {
-  fontSize: 18,
-  fontWeight: "700",
-  color: "#0A1A4F",
-  marginBottom: 6,
-  marginTop: 10,
-},
-
-resultCard: {
-  backgroundColor: "#ffffff",
-  padding: 14,
-  borderRadius: 12,
-  borderWidth: 1,
-  borderColor: "#e6e6e6",
-  marginBottom: 10,
-  shadowColor: "#000",
-  shadowOpacity: 0.06,
-  shadowRadius: 6,
-  shadowOffset: { width: 0, height: 3 },
-  elevation: 3,
-},
-
-resultCardAlt: {
-  backgroundColor: "#f7faff",
-},
-
-resultHeaderRow: {
-  flexDirection: "row",
-  justifyContent: "space-between",
-  alignItems: "center",
-  marginBottom: 10,
-},
-
-resultHeaderDate: {
-  fontSize: 15,
-  fontWeight: "700",
-  color: "#0A1A4F",
-},
-
-activityBadge: {
-  backgroundColor: "#e7e7e7",
-  paddingVertical: 4,
-  paddingHorizontal: 12,
-  borderRadius: 20,
-},
-
-activityText: {
-  fontSize: 12,
-  fontWeight: "700",
-  color: "#0A1A4F",
-},
-
-resultRow: {
-  flexDirection: "row",
-  justifyContent: "space-between",
-  marginBottom: 6,
-},
-
-resultLabel: {
-  fontWeight: "600",
-  color: "#444",
-  fontSize: 13,
-},
-
-resultValue: {
-  fontWeight: "500",
-  color: "#0A1A4F",
-  fontSize: 13,
-},
-
-hoursBadge: {
-  marginTop: 10,
-  alignSelf: "flex-end",
-  backgroundColor: "#0A1A4F",
-  paddingVertical: 5,
-  paddingHorizontal: 12,
-  borderRadius: 20,
-},
-
-hoursText: {
-  color: "white",
-  fontWeight: "700",
-  fontSize: 12,
-},
-
-iconOnly: {
-  fontSize: 16,
-  marginRight: 6,
-},
-
 });

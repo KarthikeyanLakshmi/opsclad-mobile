@@ -3,17 +3,28 @@ import {
   View,
   Text,
   TextInput,
-  Button,
   Alert,
   StyleSheet,
   Image,
   TouchableOpacity,
+  ActivityIndicator,
 } from "react-native";
 import { useRouter } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "../src/lib/supabase";
 import { LoadingOverlay } from "../src/components/loadingOverlay";
 
 const logo = require("../assets/images/opsclad-logo.png");
+
+/* =========================
+   THEME COLORS
+========================= */
+const COLORS = {
+  primary: "#1b2a41",   // deep navy
+  accent: "#ff6b6b",    // coral
+  white: "#ffffff",
+  muted: "#cbd5e1",
+};
 
 export default function ResetPasswordScreen() {
   const router = useRouter();
@@ -31,13 +42,10 @@ export default function ResetPasswordScreen() {
       setLoading(true);
 
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: "opsclad://reset-password", 
-        // 🔴 IMPORTANT: must match your deep link config
+        redirectTo: "opsclad://reset-password", // must match deep link config
       });
 
-      if (error) {
-        throw error;
-      }
+      if (error) throw error;
 
       Alert.alert(
         "Email Sent",
@@ -60,72 +68,110 @@ export default function ResetPasswordScreen() {
     <View style={styles.container}>
       {loading && <LoadingOverlay />}
 
+      {/* HEADER WITH BACK */}
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => router.back()}>
+          <Ionicons name="arrow-back" size={26} color={COLORS.white} />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Reset Password</Text>
+        <View style={{ width: 26 }} />
+      </View>
+
+      {/* Logo */}
       <Image source={logo} style={styles.logo} resizeMode="contain" />
 
-      <Text style={styles.title}>Reset Password</Text>
-
+      {/* Email input */}
       <TextInput
         style={styles.input}
         placeholder="Enter your email"
-        placeholderTextColor="#cccccc"
+        placeholderTextColor={COLORS.muted}
         keyboardType="email-address"
         autoCapitalize="none"
         value={email}
         onChangeText={setEmail}
       />
 
-      <Button
-        title={loading ? "Sending..." : "Send Reset Link"}
+      {/* Send button */}
+      <TouchableOpacity
+        style={[styles.resetBtn, loading && { opacity: 0.7 }]}
         onPress={handleResetPassword}
         disabled={loading}
-      />
-
-      <TouchableOpacity
-        onPress={() => router.replace("/login")}
-        style={{ marginTop: 16 }}
       >
+        {loading ? (
+          <ActivityIndicator color={COLORS.white} />
+        ) : (
+          <Text style={styles.resetText}>Send Reset Link</Text>
+        )}
+      </TouchableOpacity>
+
+      {/* Back to login */}
+      <TouchableOpacity onPress={() => router.replace("/login")}>
         <Text style={styles.backText}>Back to Login</Text>
       </TouchableOpacity>
     </View>
   );
 }
 
+/* =========================
+   STYLES
+========================= */
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#0A1A4F",
+    backgroundColor: COLORS.primary,
     padding: 24,
     justifyContent: "center",
+  },
+
+  header: {
+    position: "absolute",
+    top: 50,
+    left: 24,
+    right: 24,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+
+  headerTitle: {
+    color: COLORS.white,
+    fontSize: 18,
+    fontWeight: "700",
   },
 
   logo: {
     width: "70%",
     height: 120,
     alignSelf: "center",
-    marginBottom: 20,
-  },
-
-  title: {
-    fontSize: 26,
-    fontWeight: "bold",
-    textAlign: "center",
     marginBottom: 30,
-    color: "white",
   },
 
   input: {
     borderWidth: 1,
-    borderColor: "white",
+    borderColor: COLORS.white,
     padding: 14,
-    borderRadius: 8,
+    borderRadius: 10,
     marginBottom: 20,
-    color: "white",
+    color: COLORS.white,
+  },
+
+  resetBtn: {
+    backgroundColor: COLORS.accent,
+    paddingVertical: 14,
+    borderRadius: 10,
+    alignItems: "center",
+  },
+
+  resetText: {
+    color: COLORS.white,
+    fontSize: 16,
+    fontWeight: "700",
   },
 
   backText: {
-    color: "#f97316",
+    color: COLORS.accent,
     textAlign: "center",
-    fontSize: 14,
+    marginTop: 18,
+    fontWeight: "600",
   },
 });
-

@@ -120,7 +120,7 @@ export default function AllTasks() {
   if (loading)
     return (
       <View style={styles.center}>
-        <ActivityIndicator size="large" color="#0A1A4F" />
+        <ActivityIndicator size="large" color={COLORS.primary} />
       </View>
     );
 
@@ -132,7 +132,7 @@ export default function AllTasks() {
         <TextInput
           style={styles.searchInput}
           placeholder="Search tasks..."
-          placeholderTextColor="#666"
+          placeholderTextColor={COLORS.muted}
           value={search}
           onChangeText={handleSearch}
         />
@@ -153,14 +153,14 @@ export default function AllTasks() {
                 value={editValues.task_id}
                 onChangeText={(t) => setEditValues({ ...editValues, task_id: t })}
                 placeholder="eg.TSK-001"
-                placeholderTextColor="#6B7280"
+placeholderTextColor={COLORS.muted}
               />
 
               {/* DESCRIPTION */}
               <TextInput
                 style={styles.input}
                 value={editValues.description}
-                placeholderTextColor="#6B7280"
+placeholderTextColor={COLORS.muted}
                 onChangeText={(t) =>
                   setEditValues({ ...editValues, description: t })
                 }
@@ -292,99 +292,159 @@ export default function AllTasks() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { padding: 12 },
+const COLORS = {
+  primary: "#1b2a41", // navy
+  accent: "#ff6b6b",  // coral
+  bg: "#f4f4f5",
+  card: "#ffffff",
+  inputBg: "#f9fafb",
+  border: "#e5e7eb",
+  text: "#111827",
+  muted: "#6b7280",
+  danger: "#dc2626",
+  success: "#16a34a",
+};
 
-  // SEARCH BAR
+const styles = StyleSheet.create({
+  container: {
+    padding: 12,
+    backgroundColor: COLORS.bg,
+  },
+
+  /* ---------- SEARCH ---------- */
   searchWrapper: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#eee",
-    padding: 10,
-    borderRadius: 10,
-    marginBottom: 10,
+    backgroundColor: COLORS.card,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 12,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: COLORS.border,
   },
+
   searchInput: {
     flex: 1,
-    fontSize: 16,
+    fontSize: 15,
+    color: COLORS.text,
   },
+
   clearSearch: {
-    color: "red",
+    color: COLORS.accent,
     marginLeft: 10,
     fontWeight: "700",
   },
 
+  /* ---------- CARD ---------- */
   card: {
-    backgroundColor: "#fff",
+    backgroundColor: COLORS.card,
     padding: 16,
-    borderRadius: 10,
+    borderRadius: 14,
     marginBottom: 12,
     borderLeftWidth: 5,
-    borderLeftColor: "#0A1A4F",
+    borderLeftColor: COLORS.primary,
+    shadowColor: "#000",
+    shadowOpacity: 0.06,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 3,
   },
+
   title: {
     fontSize: 16,
     fontWeight: "700",
     marginBottom: 6,
-    color: "#0A1A4F",
+    color: COLORS.primary,
   },
+
+  /* ---------- INPUTS ---------- */
   input: {
-    backgroundColor: "#f2f2f2",
-    padding: 10,
-    borderRadius: 6,
+    backgroundColor: COLORS.inputBg,
+    padding: 12,
+    borderRadius: 10,
     marginBottom: 12,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    color: COLORS.text,
   },
-  label: { marginTop: 10, fontWeight: "600" },
+
+  label: {
+    marginTop: 10,
+    marginBottom: 4,
+    fontWeight: "700",
+    color: COLORS.primary,
+  },
+
   pickerWrapper: {
     borderWidth: 1,
-    borderColor: "#ccc",
-    borderRadius: 6,
+    borderColor: COLORS.border,
+    borderRadius: 10,
     marginTop: 6,
     marginBottom: 10,
+    backgroundColor: COLORS.card,
+    overflow: "hidden",
   },
+
   dateButton: {
-    backgroundColor: "#f2f2f2",
+    backgroundColor: COLORS.card,
     padding: 12,
-    borderRadius: 6,
+    borderRadius: 10,
     marginTop: 6,
     marginBottom: 10,
+    borderWidth: 1,
+    borderColor: COLORS.border,
   },
+
+  /* ---------- ACTION ROW ---------- */
   row: {
     flexDirection: "row",
-    marginTop: 10,
+    marginTop: 12,
   },
+
   editBtn: {
     flex: 1,
-    backgroundColor: "#0A1A4F",
-    padding: 10,
-    borderRadius: 6,
+    backgroundColor: COLORS.primary,
+    padding: 12,
+    borderRadius: 10,
     marginRight: 6,
   },
+
   deleteBtn: {
     flex: 1,
-    backgroundColor: "red",
-    padding: 10,
-    borderRadius: 6,
+    backgroundColor: COLORS.accent,
+    padding: 12,
+    borderRadius: 10,
     marginLeft: 6,
   },
+
   saveBtn: {
     flex: 1,
-    backgroundColor: "green",
-    padding: 10,
-    borderRadius: 6,
+    backgroundColor: COLORS.success,
+    padding: 12,
+    borderRadius: 10,
     marginRight: 6,
   },
+
   cancelBtn: {
     flex: 1,
-    backgroundColor: "gray",
-    padding: 10,
-    borderRadius: 6,
+    backgroundColor: COLORS.muted,
+    padding: 12,
+    borderRadius: 10,
     marginLeft: 6,
   },
+
   btnText: {
-    color: "#fff",
+    color: "#ffffff",
     textAlign: "center",
-    fontWeight: "700",
+    fontWeight: "800",
+    letterSpacing: 0.3,
   },
-  center: { flex: 1, justifyContent: "center", alignItems: "center" },
+
+  center: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: COLORS.bg,
+  },
 });

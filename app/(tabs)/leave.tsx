@@ -3,16 +3,12 @@ import {
   View,
   ActivityIndicator,
   StyleSheet,
-  TouchableOpacity,
-  Text,
 } from "react-native";
-import { useRouter } from "expo-router";
-import { Ionicons } from "@expo/vector-icons";
-import { supabase } from "../src/lib/supabase";
+import { supabase } from "../../src/lib/supabase";
 
-// Import the two UI components
-import SkillsTracker from "../components/employee/skills-tracker";
-import SkillsReport from "../components/manager/skills-report";
+// IMPORT THE TWO COMPONENTS
+import LeaveTracker from "../../components/employee/leave-tracker";
+import LeaveReport from "../../components/manager/leave-report";
 
 /* =========================
    THEME COLORS
@@ -23,9 +19,7 @@ const COLORS = {
   bg: "#F3F4F6",
 };
 
-export default function SkillsScreen() {
-  const router = useRouter();
-
+export default function LeaveScreen() {
   const [role, setRole] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -34,7 +28,7 @@ export default function SkillsScreen() {
       const { data: auth } = await supabase.auth.getUser();
 
       if (!auth?.user) {
-        setRole("employee");
+        setRole(null);
         setLoading(false);
         return;
       }
@@ -45,6 +39,7 @@ export default function SkillsScreen() {
         .eq("user_id", auth.user.id)
         .single();
 
+      // default to employee if no role found
       setRole(roleData?.role || "employee");
       setLoading(false);
     }
@@ -63,51 +58,20 @@ export default function SkillsScreen() {
     );
   }
 
-  return (
-    <View style={styles.container}>
-      {/* HEADER WITH BACK BUTTON */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()}>
-          <Ionicons name="arrow-back" size={26} color={COLORS.primary} />
-        </TouchableOpacity>
+  /* -------------------------
+     ROLE-BASED VIEW
+  ------------------------- */
+  if (role === "manager") {
+    return <LeaveReport />;
+  }
 
-        <Text style={styles.headerTitle}>Skills</Text>
-
-        <View style={{ width: 26 }} />
-      </View>
-
-      {/* ROLE-BASED VIEW */}
-      <View style={{ flex: 1 }}>
-        {role === "manager" ? <SkillsReport /> : <SkillsTracker />}
-      </View>
-    </View>
-  );
+  return <LeaveTracker />;
 }
 
 /* =========================
    STYLES
 ========================= */
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: COLORS.bg,
-    paddingTop: 50,
-  },
-
-  header: {
-    paddingHorizontal: 20,
-    paddingBottom: 10,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: "700",
-    color: COLORS.primary,
-  },
-
   center: {
     flex: 1,
     justifyContent: "center",

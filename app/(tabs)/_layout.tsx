@@ -11,6 +11,17 @@ import {
 } from "react-native";
 import { supabase } from "../../src/lib/supabase";
 
+/* =========================
+   THEME COLORS
+========================= */
+const COLORS = {
+  primary: "#1b2a41",   // deep navy
+  accent: "#ff6b6b",    // coral
+  textLight: "#ffffff",
+  textMuted: "#cbd5e1",
+  divider: "#2a3c5f",
+};
+
 const SCREEN_WIDTH = Dimensions.get("window").width;
 
 export default function TabsLayout() {
@@ -22,9 +33,9 @@ export default function TabsLayout() {
   const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
-  // -------------------------
-  // LOAD PROFILE FROM SUPABASE
-  // -------------------------
+  /* -------------------------
+     LOAD PROFILE
+  ------------------------- */
   useEffect(() => {
     loadProfile();
   }, []);
@@ -43,7 +54,7 @@ export default function TabsLayout() {
 
     const { data: profileData } = await supabase
       .from("profiles")
-      .select("username, email, employee_id")
+      .select("username")
       .eq("id", userId)
       .single();
 
@@ -63,13 +74,14 @@ export default function TabsLayout() {
     setLoading(false);
   }
 
-  // DRAWER ANIMATION
+  /* -------------------------
+     DRAWER ANIMATION
+  ------------------------- */
   const openDrawer = () => {
     setDrawerVisible(true);
     Animated.timing(drawerAnim, {
       toValue: 0,
       duration: 250,
-      easing: undefined,
       useNativeDriver: false,
     }).start();
   };
@@ -78,8 +90,7 @@ export default function TabsLayout() {
     Animated.timing(drawerAnim, {
       toValue: SCREEN_WIDTH,
       duration: 250,
-      easing: undefined,
-      useNativeDriver: false, 
+      useNativeDriver: false,
     }).start(() => setDrawerVisible(false));
   };
 
@@ -89,32 +100,50 @@ export default function TabsLayout() {
         <TouchableOpacity style={styles.overlay} onPress={closeDrawer} />
       )}
 
-      <Animated.View style={[styles.drawer, { transform: [{ translateX: drawerAnim }] }]}>
+      {/* ================= DRAWER ================= */}
+      <Animated.View
+        style={[styles.drawer, { transform: [{ translateX: drawerAnim }] }]}
+      >
         {/* Header */}
         <View style={styles.drawerHeader}>
           <Text style={styles.drawerHeaderText}>Menu</Text>
           <TouchableOpacity onPress={closeDrawer}>
-            <Ionicons name="close" size={30} color="#fff" />
+            <Ionicons name="close" size={30} color={COLORS.textLight} />
           </TouchableOpacity>
         </View>
 
         {/* Profile */}
         <View style={styles.drawerProfile}>
           <View style={styles.profileRow}>
-            <Ionicons name="person-circle-outline" size={48} color="#fff" />
-
+            <Ionicons
+              name="person-circle-outline"
+              size={48}
+              color={COLORS.textLight}
+            />
             <View style={{ marginLeft: 12 }}>
               <Text style={styles.profileName}>
                 {profile?.username ?? "User"}
               </Text>
-              <View style={styles.roleRow}>
-                <Text style={styles.profileRole}>
-                  {profile?.role ?? "Role"}
-                </Text>
-              </View>
+              <Text style={styles.profileRole}>
+                {profile?.role ?? "Role"}
+              </Text>
             </View>
           </View>
         </View>
+
+        {/* Drawer Items */}
+        <TouchableOpacity
+          style={styles.drawerItem}
+          onPress={() => {
+            closeDrawer();
+            router.push("/profile");
+          }}
+        >
+          <View style={styles.drawerRow}>
+            <Ionicons name="person-outline" size={22} color="#fff" />
+            <Text style={styles.drawerItemText}>Profile</Text>
+          </View>
+        </TouchableOpacity>
 
         <TouchableOpacity
           style={styles.drawerItem}
@@ -124,7 +153,11 @@ export default function TabsLayout() {
           }}
         >
           <View style={styles.drawerRow}>
-            <Ionicons name="calendar-outline" size={22} color="#fff" />
+            <Ionicons
+              name="calendar-outline"
+              size={22}
+              color={COLORS.textLight}
+            />
             <Text style={styles.drawerItemText}>Leave Tracker</Text>
           </View>
         </TouchableOpacity>
@@ -137,26 +170,33 @@ export default function TabsLayout() {
           }}
         >
           <View style={styles.drawerRow}>
-            <Ionicons name="star-outline" size={22} color="#fff" />
+            <Ionicons
+              name="star-outline"
+              size={22}
+              color={COLORS.textLight}
+            />
             <Text style={styles.drawerItemText}>Skills Tracker</Text>
           </View>
         </TouchableOpacity>
 
-
         {profile?.role === "manager" && (
-        <TouchableOpacity
-          style={styles.drawerItem}
-          onPress={() => {
-            closeDrawer();
-            router.push("../user-roles");
-          }}
-        >
-          <View style={styles.drawerRow}>
-            <Ionicons name="settings-outline" size={22} color="#fff" />
-            <Text style={styles.drawerItemText}>User Roles</Text>
-          </View>
-        </TouchableOpacity>
-      )}
+          <TouchableOpacity
+            style={styles.drawerItem}
+            onPress={() => {
+              closeDrawer();
+              router.push("../user-roles");
+            }}
+          >
+            <View style={styles.drawerRow}>
+              <Ionicons
+                name="settings-outline"
+                size={22}
+                color={COLORS.textLight}
+              />
+              <Text style={styles.drawerItemText}>User Roles</Text>
+            </View>
+          </TouchableOpacity>
+        )}
 
         {/* Logout */}
         <TouchableOpacity
@@ -171,53 +211,43 @@ export default function TabsLayout() {
         </TouchableOpacity>
       </Animated.View>
 
-      {/* MAIN TABS */}
+      {/* ================= TABS ================= */}
       <Tabs
         screenOptions={{
           headerShown: true,
-          headerStyle: { backgroundColor: "#0A1A4F" },
-          headerTitleStyle: { color: "#fff" },
-
-              // 🔥 Make bottom nav bigger
+          headerStyle: { backgroundColor: COLORS.primary },
+          tabBarActiveTintColor: COLORS.accent,
+          tabBarInactiveTintColor: "#8e8e8e",
           tabBarStyle: {
-            height: 70,           // ⬆️ increase height
+            height: 70,
             paddingBottom: 10,
             paddingTop: 10,
+            backgroundColor: "#ffffff",
+            elevation: 10,
           },
 
-
-          // TOP LEFT — USERNAME + ROLE
           headerTitle: () => (
             <View>
               {loading ? (
-                <Text style={{ color: "#fff" }}>Loading...</Text>
-              ) : profile ? (
+                <Text style={{ color: COLORS.textLight }}>Loading...</Text>
+              ) : (
                 <>
-                  <Text style={{ color: "#fff", fontWeight: "600", fontSize: 16 }}>
-                    {profile.username}
+                  <Text style={{ color: COLORS.textLight, fontWeight: "600" }}>
+                    {profile?.username}
                   </Text>
-                  <Text style={{ color: "#cbd5e1", fontSize: 12 }}>
-                    {profile.role}
+                  <Text style={{ color: COLORS.textMuted, fontSize: 12 }}>
+                    {profile?.role}
                   </Text>
                 </>
-              ) : (
-                <Text style={{ color: "#fff" }}>No Profile</Text>
               )}
             </View>
           ),
 
-          // TOP RIGHT — BURGER BUTTON
           headerRight: () => (
-            <TouchableOpacity
-              onPress={openDrawer}
-              style={{ padding: 12 }} // BIGGER TOUCH AREA
-            >
-              <Ionicons name="menu" size={28} color="#fff" />
+            <TouchableOpacity onPress={openDrawer} style={{ padding: 12 }}>
+              <Ionicons name="menu" size={28} color={COLORS.textLight} />
             </TouchableOpacity>
           ),
-
-          tabBarActiveTintColor: "#0A1A4F",
-          tabBarInactiveTintColor: "#8e8e8e",
         }}
       >
         <Tabs.Screen
@@ -240,7 +270,6 @@ export default function TabsLayout() {
           }}
         />
 
-
         <Tabs.Screen
           name="timesheet"
           options={{
@@ -250,12 +279,13 @@ export default function TabsLayout() {
             ),
           }}
         />
+
         <Tabs.Screen
-          name="profile"
+          name="leave"
           options={{
             tabBarLabel: "",
             tabBarIcon: ({ color }) => (
-              <Ionicons name="person-outline" size={28} color={color} />
+              <Ionicons name="calendar-outline" size={28} color={color} />
             ),
           }}
         />
@@ -264,6 +294,9 @@ export default function TabsLayout() {
   );
 }
 
+/* =========================
+   STYLES
+========================= */
 const styles = StyleSheet.create({
   overlay: {
     position: "absolute",
@@ -272,76 +305,80 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0,0,0,0.4)",
     zIndex: 10,
   },
+
   drawer: {
     position: "absolute",
     right: 0,
     top: 0,
     height: "100%",
     width: SCREEN_WIDTH * 0.75,
-    backgroundColor: "#0A1A4F", // dark navy
+    backgroundColor: COLORS.primary,
     zIndex: 20,
     paddingTop: 60,
     paddingHorizontal: 20,
   },
+
   drawerHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     marginBottom: 25,
   },
+
   drawerHeaderText: {
-    color: "#fff",
+    color: COLORS.textLight,
     fontSize: 22,
     fontWeight: "700",
   },
+
   drawerProfile: {
     marginBottom: 40,
   },
-  profileName: {
-    color: "#fff",
-    fontSize: 18,
-    fontWeight: "700",
-  },
-  profileRole: {
-    color: "#cbd5e1",
-    fontSize: 14,
-    marginTop: 4,
-  },
-  drawerItem: {
-    paddingVertical: 15,
-    borderBottomWidth: 1,
-    borderBottomColor: "#12326B",
-  },
-  drawerItemText: {
-    color: "#fff",
-    fontSize: 16,
-  },
-  logoutBtn: {
-    marginTop: 40,
-    backgroundColor: "#B30000",
-    paddingVertical: 14,
-    borderRadius: 8,
-  },
-  logoutText: {
-    color: "#fff",
-    textAlign: "center",
-    fontSize: 16,
-    fontWeight: "700",
-  },
-  drawerRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-  },
+
   profileRow: {
     flexDirection: "row",
     alignItems: "center",
   },
 
-  roleRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginTop: 2,
-    gap: 6,
+  profileName: {
+    color: COLORS.textLight,
+    fontSize: 18,
+    fontWeight: "700",
   },
 
+  profileRole: {
+    color: COLORS.textMuted,
+    fontSize: 14,
+    marginTop: 4,
+  },
+
+  drawerItem: {
+    paddingVertical: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.divider,
+  },
+
+  drawerItemText: {
+    color: COLORS.textLight,
+    fontSize: 16,
+  },
+
+  drawerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+
+  logoutBtn: {
+    marginTop: 40,
+    backgroundColor: COLORS.accent,
+    paddingVertical: 14,
+    borderRadius: 8,
+  },
+
+  logoutText: {
+    color: COLORS.textLight,
+    textAlign: "center",
+    fontSize: 16,
+    fontWeight: "700",
+  },
 });

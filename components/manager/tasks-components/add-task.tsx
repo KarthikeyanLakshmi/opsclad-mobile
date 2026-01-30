@@ -114,7 +114,7 @@ export default function AddTask() {
   if (loading)
     return (
       <View style={styles.center}>
-        <ActivityIndicator size="large" color="#0A1A4F" />
+        <ActivityIndicator size="large" color={COLORS.primary} />
       </View>
     );
 
@@ -191,7 +191,9 @@ export default function AddTask() {
         style={styles.dateButton}
         onPress={() => setShowStartPicker(true)}
       >
-        <Text>{task.start_date || "Select Start Date"}</Text>
+        <Text style={{ color: task.start_date ? COLORS.text : COLORS.muted }}>
+          {task.start_date || "Select Start Date"}
+        </Text>
       </TouchableOpacity>
 
       {showStartPicker && (
@@ -248,66 +250,112 @@ export default function AddTask() {
   );
 }
 
+const COLORS = {
+  primary: "#1b2a41", // navy
+  accent: "#ff6b6b",  // coral
+  bg: "#f4f4f5",
+  card: "#ffffff",
+  inputBg: "#f9fafb",
+  border: "#e5e7eb",
+  text: "#111827",
+  muted: "#6b7280",
+};
+
 // ----------------------------------------------------------------
 // STYLES
 // ----------------------------------------------------------------
 const styles = StyleSheet.create({
-  container: { padding: 12 },
-  input: {
-    backgroundColor: "#f2f2f2",
-    padding: 10,
-    borderRadius: 6,
-    marginBottom: 12,
+  container: {
+    padding: 12,
+    backgroundColor: COLORS.bg,
   },
+
+  input: {
+    backgroundColor: COLORS.card,
+    padding: 12,
+    borderRadius: 10,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    color: COLORS.text,
+  },
+
   textarea: {
     height: 80,
     textAlignVertical: "top",
   },
+
   label: {
     fontSize: 14,
     fontWeight: "700",
     marginBottom: 6,
-    marginTop: 6,
+    marginTop: 10,
+    color: COLORS.primary,
   },
+
+  /* ---------- Chips ---------- */
   chip: {
     paddingVertical: 6,
-    paddingHorizontal: 12,
+    paddingHorizontal: 14,
     marginRight: 10,
     backgroundColor: "#e5e7eb",
-    borderRadius: 20,
+    borderRadius: 999,
   },
+
   chipSelected: {
-    backgroundColor: "#0A1A4F",
+    backgroundColor: COLORS.primary,
   },
+
   chipText: {
-    color: "#333",
+    color: COLORS.text,
+    fontWeight: "500",
   },
+
   chipTextSelected: {
-    color: "#fff",
-  },
-  pickerWrapper: {
-    borderWidth: 1,
-    borderColor: "#ccc",
-    borderRadius: 6,
-    marginBottom: 12,
-  },
-  dateButton: {
-    backgroundColor: "#f2f2f2",
-    padding: 12,
-    borderRadius: 6,
-    marginBottom: 12,
-  },
-  saveBtn: {
-    marginTop: 15,
-    backgroundColor: "#0A1A4F",
-    padding: 14,
-    borderRadius: 8,
-  },
-  saveText: {
-    color: "#fff",
-    textAlign: "center",
-    fontSize: 16,
+    color: "#ffffff",
     fontWeight: "700",
   },
-  center: { flex: 1, justifyContent: "center", alignItems: "center" },
+
+  /* ---------- Pickers ---------- */
+  pickerWrapper: {
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderRadius: 10,
+    marginBottom: 12,
+    backgroundColor: COLORS.card,
+    overflow: "hidden",
+  },
+
+  /* ---------- Date Buttons ---------- */
+  dateButton: {
+    backgroundColor: COLORS.card,
+    padding: 12,
+    borderRadius: 10,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+
+  /* ---------- Submit ---------- */
+  saveBtn: {
+    marginTop: 20,
+    backgroundColor: COLORS.accent,
+    padding: 14,
+    borderRadius: 12,
+  },
+
+  saveText: {
+    color: "#ffffff",
+    textAlign: "center",
+    fontSize: 16,
+    fontWeight: "800",
+    letterSpacing: 0.3,
+  },
+
+  center: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: COLORS.bg,
+  },
 });

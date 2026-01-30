@@ -298,113 +298,157 @@ return (
   );
 }
 
+const COLORS = {
+  primary: "#1b2a41", // navy
+  accent: "#ff6b6b",  // coral
+  bg: "#f4f4f5",
+  card: "#ffffff",
+  muted: "#6b7280",
+  border: "#e5e7eb",
+  danger: "#dc2626",
+  success: "#16a34a",
+  warning: "#d97706",
+  info: "#2563eb",
+};
+
 const styles = StyleSheet.create({
+  /* ---------- Layout ---------- */
+  center: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: COLORS.bg,
+  },
+
+  /* ---------- Card ---------- */
   card: {
-    backgroundColor: "#fff",
+    backgroundColor: COLORS.card,
     padding: 16,
     marginBottom: 12,
-    borderRadius: 10,
-
+    borderRadius: 14,
     borderLeftWidth: 5,
-    borderLeftColor: "#0A1A4F",
+    borderLeftColor: COLORS.primary,
+    shadowColor: "#000",
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 2,
   },
 
   title: {
     fontSize: 16,
     fontWeight: "700",
     marginBottom: 8,
-    color: "#0A1A4F",
+    color: COLORS.primary,
   },
 
+  /* ---------- Labels & Text ---------- */
   label: {
     marginTop: 6,
-    color: "#0A1A4F",
+    color: COLORS.primary,
     fontWeight: "600",
   },
 
+  pendingText: {
+    color: COLORS.warning,
+    marginTop: 6,
+    fontWeight: "600",
+  },
+
+  emptyBox: {
+    marginTop: 40,
+    alignItems: "center",
+  },
+
+  emptyText: {
+    fontSize: 15,
+    color: COLORS.muted,
+    fontStyle: "italic",
+  },
+
+  /* ---------- Inputs ---------- */
   input: {
     borderWidth: 1,
-    borderColor: "#ddd",
-    borderRadius: 6,
+    borderColor: COLORS.border,
+    borderRadius: 10,
     padding: 10,
     marginTop: 4,
+    backgroundColor: COLORS.card,
+    color: COLORS.primary,
   },
 
   pickerWrapper: {
     borderWidth: 1,
-    borderColor: "#ddd",
-    borderRadius: 6,
+    borderColor: COLORS.border,
+    borderRadius: 10,
     marginTop: 6,
+    overflow: "hidden",
+    backgroundColor: COLORS.card,
   },
 
+  /* ---------- Buttons ---------- */
   editBtn: {
-    backgroundColor: "#0A1A4F",
-    padding: 12,
-    borderRadius: 6,
-    marginTop: 10,
-  },
-
-  pendingText: {
-    color: "#b45309",
-    marginTop: 4,
-    fontWeight: "600",
+    backgroundColor: COLORS.primary,
+    paddingVertical: 12,
+    borderRadius: 10,
+    marginTop: 12,
   },
 
   saveBtn: {
-    backgroundColor: "#0A1A4F",
-    padding: 12,
-    borderRadius: 6,
+    backgroundColor: COLORS.primary,
+    paddingVertical: 12,
+    borderRadius: 10,
     flex: 1,
     marginRight: 6,
   },
 
   cancelBtn: {
-    backgroundColor: "#666",
-    padding: 12,
-    borderRadius: 6,
+    backgroundColor: COLORS.border,
+    paddingVertical: 12,
+    borderRadius: 10,
     flex: 1,
     marginLeft: 6,
   },
 
+  btnText: {
+    color: "#ffffff",
+    textAlign: "center",
+    fontWeight: "600",
+  },
+
+  row: {
+    flexDirection: "row",
+    marginTop: 12,
+  },
+
+  /* ---------- Status Badge ---------- */
   badge: {
-    paddingVertical: 4,
-    paddingHorizontal: 10,
-    borderRadius: 12,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 999,
     alignSelf: "flex-start",
-    marginTop: 6,
+    marginTop: 8,
   },
 
   badgeText: {
     fontSize: 12,
-    fontWeight: "600",
+    fontWeight: "700",
+    color: "#ffffff",
   },
 
-  btnText: { color: "white", textAlign: "center", fontWeight: "600" },
-
-  row: { flexDirection: "row", marginTop: 10 },
-
-  emptyBox: { marginTop: 40, alignItems: "center" },
-
-  emptyText: {
-    fontSize: 16,
-    color: "#9ca3af",
-    fontStyle: "italic",
-  },
-
-  center: { flex: 1, justifyContent: "center", alignItems: "center" },
-
+  /* ---------- Search ---------- */
   searchContainer: {
     marginBottom: 12,
   },
 
   searchInput: {
     borderWidth: 1,
-    borderColor: "#ccc",
-    backgroundColor: "#ffffff", // ← white background
-    borderRadius: 8,
+    borderColor: COLORS.border,
+    backgroundColor: COLORS.card,
+    borderRadius: 12,
     paddingVertical: 10,
     paddingHorizontal: 14,
     fontSize: 14,
-    color: "#111",
+    color: COLORS.primary,
   },
 });
