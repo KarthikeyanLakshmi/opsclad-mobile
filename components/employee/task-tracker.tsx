@@ -403,7 +403,7 @@ const styles = StyleSheet.create({
   },
 
   cancelBtn: {
-    backgroundColor: COLORS.border,
+    backgroundColor: COLORS.accent,
     paddingVertical: 12,
     borderRadius: 10,
     flex: 1,

@@ -67,29 +67,35 @@ export default function ManagerTasks() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#f6f6f6" },
+  /* ---------------- CONTAINER ---------------- */
+  container: {
+    flex: 1,
+    backgroundColor: "#f6f6f6",
+  },
 
+  /* ---------------- HEADER ---------------- */
   header: {
     padding: 20,
     alignItems: "center",
     backgroundColor: "#ffffff",
     borderBottomWidth: 1,
-    borderColor: "#e5e7eb",
+    borderBottomColor: "#e5e7eb",
   },
 
   headerTitle: {
-    color: "#111827",
+    color: "#1b2a41", // primary
     fontSize: 20,
     fontWeight: "700",
   },
 
+  /* ---------------- TABS ---------------- */
   tabRow: {
     flexDirection: "row",
-    backgroundColor: "#fff",
+    backgroundColor: "#ffffff",
     paddingVertical: 10,
     justifyContent: "space-around",
     borderBottomWidth: 1,
-    borderColor: "#ddd",
+    borderBottomColor: "#e5e7eb",
   },
 
   tabButton: {
@@ -99,20 +105,21 @@ const styles = StyleSheet.create({
 
   activeTab: {
     borderBottomWidth: 3,
-    borderBottomColor: "#0A1A4F",
+    borderBottomColor: "#1b2a41", // primary
   },
 
   tabText: {
-    color: "#666",
+    color: "#6b7280",
     fontSize: 14,
     fontWeight: "500",
   },
 
   activeTabText: {
-    color: "#0A1A4F",
+    color: "#1b2a41", // primary
     fontWeight: "700",
   },
 
+  /* ---------------- EMPTY STATE ---------------- */
   emptyBox: {
     marginTop: 30,
     alignItems: "center",

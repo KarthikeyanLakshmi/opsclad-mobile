@@ -105,12 +105,6 @@ export default function LeaveReport() {
     <ScrollView style={styles.container}>
       {/* HEADER */}
       <View style={styles.row}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => router.back()}
-        >
-          <Feather name="arrow-left" size={22} color="#111" />
-        </TouchableOpacity>
         <Text style={styles.title}>Leave Report</Text>
       </View>
 
@@ -205,7 +199,7 @@ export default function LeaveReport() {
           <Text style={styles.sectionTitle}>Leave Records</Text>
 
           {loading ? (
-            <ActivityIndicator size="large" color="#0A1A4F" />
+          <ActivityIndicator size="large" color={COLORS.primary} />
           ) : filteredRecords.length === 0 ? (
             <Text style={styles.noData}>No records found.</Text>
           ) : (
@@ -263,6 +257,16 @@ export default function LeaveReport() {
   );
 }
 
+const COLORS = {
+  primary: "#1b2a41", // navy
+  accent: "#ff6b6b",  // coral
+  bg: "#f6f6f6",
+  card: "#ffffff",
+  border: "#e5e7eb",
+  muted: "#6b7280",
+};
+
+/* ---------------- STYLES ---------------- */
 /* ---------------- STYLES ---------------- */
 const styles = StyleSheet.create({
   container: {
@@ -274,7 +278,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 22,
     fontWeight: "700",
-    color: "#0A1A4F",
+    color: "#1b2a41", // primary
   },
 
   row: {
@@ -288,6 +292,7 @@ const styles = StyleSheet.create({
     padding: 6,
   },
 
+  /* ---------------- TABS ---------------- */
   tabs: {
     flexDirection: "row",
     gap: 8,
@@ -297,75 +302,82 @@ const styles = StyleSheet.create({
   tab: {
     flex: 1,
     paddingVertical: 10,
-    backgroundColor: "#ddd",
+    backgroundColor: "#e5e7eb",
     borderRadius: 8,
     alignItems: "center",
   },
 
-  activeTab: { backgroundColor: "#0A1A4F" },
+  activeTab: {
+    backgroundColor: "#1b2a41", // primary
+  },
 
   activeTabText: {
-    color: "#fff",
+    color: "#ffffff",
     fontWeight: "700",
   },
 
   tabText: {
-    color: "#000",
+    color: "#1b2a41",
     fontWeight: "600",
   },
 
+  /* ---------------- SECTIONS ---------------- */
   sectionTitle: {
     fontSize: 18,
     marginVertical: 10,
     fontWeight: "600",
+    color: "#1b2a41",
   },
 
   filterBox: {
     borderWidth: 1,
-    borderColor: "#ccc",
+    borderColor: "#e5e7eb",
     borderRadius: 8,
-    backgroundColor: "#fff",
+    backgroundColor: "#ffffff",
     marginBottom: 10,
   },
 
   dateBox: {
     padding: 12,
     borderRadius: 8,
-    backgroundColor: "#fff",
+    backgroundColor: "#ffffff",
     borderWidth: 1,
-    borderColor: "#ccc",
+    borderColor: "#e5e7eb",
     marginBottom: 10,
   },
 
+  /* ---------------- CARDS ---------------- */
   recordCard: {
-    backgroundColor: "#fff",
+    backgroundColor: "#ffffff",
     padding: 14,
     borderRadius: 10,
     marginBottom: 10,
     borderWidth: 1,
-    borderColor: "#ddd",
+    borderColor: "#e5e7eb",
+  },
+
+  requestCard: {
+    backgroundColor: "#ffffff",
+    padding: 14,
+    borderRadius: 10,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
   },
 
   recordTitle: {
     fontWeight: "700",
     marginBottom: 4,
+    color: "#1b2a41",
   },
 
   noData: {
-    color: "#777",
+    color: "#6b7280",
     textAlign: "center",
     paddingVertical: 20,
   },
 
-  requestCard: {
-    backgroundColor: "#fff",
-    padding: 14,
-    borderRadius: 10,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: "#ddd",
-  },
-
+  /* ---------------- APPROVAL BUTTONS ---------------- */
   approvalRow: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -380,11 +392,16 @@ const styles = StyleSheet.create({
     marginHorizontal: 4,
   },
 
-  approve: { backgroundColor: "#10b981" },
-  reject: { backgroundColor: "#ef4444" },
+  approve: {
+    backgroundColor: "#1b2a41", // primary
+  },
+
+  reject: {
+    backgroundColor: "#ff6b6b", // accent
+  },
 
   btnText: {
-    color: "#fff",
+    color: "#ffffff",
     fontWeight: "700",
   },
 });
