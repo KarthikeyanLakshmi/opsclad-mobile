@@ -10,7 +10,6 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { useRouter } from "expo-router";
-import { loginEmployee } from "../src/api/auth";
 import { LoadingOverlay } from "../src/components/loadingOverlay";
 
 const logo = require("../assets/images/opsclad-logo.png");
@@ -19,35 +18,64 @@ const logo = require("../assets/images/opsclad-logo.png");
    THEME COLORS
 ========================= */
 const COLORS = {
-  primary: "#1b2a41",   // deep navy
+  primary: "#1b2a41",   // navy
   accent: "#ff6b6b",    // coral
   white: "#ffffff",
   muted: "#cbd5e1",
 };
 
-export default function LoginScreen() {
+export default function RegisterScreen() {
   const router = useRouter();
 
+  const [username, setUsername] = useState("");
+  const [employeeId, setEmployeeId] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+
   const [loading, setLoading] = useState(false);
 
-  async function handleLogin() {
-    try {
-      if (!email || !password) {
-        Alert.alert("Missing fields", "Please enter both email and password.");
-        return;
-      }
+  async function handleRegister() {
+    if (!username || !employeeId || !email || !password) {
+      Alert.alert("Missing fields", "Please fill in all fields.");
+      return;
+    }
 
+    if (password.length < 6) {
+      Alert.alert("Weak password", "Password must be at least 6 characters.");
+      return;
+    }
+
+    try {
       setLoading(true);
 
-      await loginEmployee(email, password);
+      const res = await fetch(
+        `${process.env.EXPO_PUBLIC_API_URL}/api/register`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            username,
+            employee_id: employeeId,
+            email,
+            password,
+          }),
+        }
+      );
 
-      await new Promise((res) => setTimeout(res, 300));
+      const data = await res.json();
 
-      router.replace("/(tabs)/home");
+      if (!res.ok) {
+        throw new Error(data.message || "Registration failed");
+      }
+
+      Alert.alert(
+        "Success",
+        "Account created successfully. Please log in."
+      );
+
+      router.replace("/login");
     } catch (err: any) {
-      Alert.alert("Login Failed", err.message);
+      Alert.alert("Registration Failed", err.message);
     } finally {
       setLoading(false);
     }
@@ -59,6 +87,24 @@ export default function LoginScreen() {
 
       {/* Logo */}
       <Image source={logo} style={styles.logo} resizeMode="contain" />
+
+      {/* Employee Name */}
+      <TextInput
+        style={styles.input}
+        placeholder="Employee Name"
+        placeholderTextColor={COLORS.muted}
+        onChangeText={setUsername}
+        value={username}
+      />
+
+      {/* Employee ID */}
+      <TextInput
+        style={styles.input}
+        placeholder="Employee ID"
+        placeholderTextColor={COLORS.muted}
+        onChangeText={setEmployeeId}
+        value={employeeId}
+      />
 
       {/* Email */}
       <TextInput
@@ -81,29 +127,22 @@ export default function LoginScreen() {
         value={password}
       />
 
-      {/* Login Button */}
+      {/* Register Button */}
       <TouchableOpacity
-        style={[styles.loginBtn, loading && { opacity: 0.7 }]}
-        onPress={handleLogin}
+        style={[styles.registerBtn, loading && { opacity: 0.7 }]}
+        onPress={handleRegister}
         disabled={loading}
       >
         {loading ? (
           <ActivityIndicator color={COLORS.white} />
         ) : (
-          <Text style={styles.loginText}>Login</Text>
+          <Text style={styles.registerText}>Create Account</Text>
         )}
       </TouchableOpacity>
 
-      {/* Forgot password */}
-      <TouchableOpacity onPress={() => router.push("/resetPassword")}>
-        <Text style={styles.forgotText}>Forgot Password?</Text>
-      </TouchableOpacity>
-
-      {/* Register */}
-      <TouchableOpacity onPress={() => router.push("/register")}>
-        <Text style={styles.registerText}>
-          Don’t have an account? Create one
-        </Text>
+      {/* Back to login */}
+      <TouchableOpacity onPress={() => router.replace("/login")}>
+        <Text style={styles.backText}>Already have an account? Login</Text>
       </TouchableOpacity>
     </View>
   );
@@ -136,7 +175,7 @@ const styles = StyleSheet.create({
     color: COLORS.white,
   },
 
-  loginBtn: {
+  registerBtn: {
     backgroundColor: COLORS.accent,
     paddingVertical: 14,
     borderRadius: 10,
@@ -144,24 +183,16 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
 
-  loginText: {
+  registerText: {
     color: COLORS.white,
     fontSize: 16,
     fontWeight: "700",
   },
 
-  forgotText: {
+  backText: {
     color: COLORS.accent,
     textAlign: "center",
     marginTop: 18,
     fontWeight: "600",
-  },
-
-  registerText: {
-    color: COLORS.white,
-    textAlign: "center",
-    marginTop: 22,
-    fontWeight: "600",
-    opacity: 0.9,
   },
 });
