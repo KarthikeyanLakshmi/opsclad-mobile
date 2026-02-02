@@ -113,7 +113,14 @@ export default function TabsLayout() {
         </View>
 
         {/* Profile */}
-        <View style={styles.drawerProfile}>
+        <TouchableOpacity
+          style={styles.drawerProfile}
+          activeOpacity={0.7}
+          onPress={() => {
+            closeDrawer();
+            router.push("/profile");
+          }}
+        >
           <View style={styles.profileRow}>
             <Ionicons
               name="person-circle-outline"
@@ -129,55 +136,10 @@ export default function TabsLayout() {
               </Text>
             </View>
           </View>
-        </View>
+        </TouchableOpacity>
+
 
         {/* Drawer Items */}
-        <TouchableOpacity
-          style={styles.drawerItem}
-          onPress={() => {
-            closeDrawer();
-            router.push("/profile");
-          }}
-        >
-          <View style={styles.drawerRow}>
-            <Ionicons name="person-outline" size={22} color="#fff" />
-            <Text style={styles.drawerItemText}>Profile</Text>
-          </View>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.drawerItem}
-          onPress={() => {
-            closeDrawer();
-            router.push("/leave");
-          }}
-        >
-          <View style={styles.drawerRow}>
-            <Ionicons
-              name="calendar-outline"
-              size={22}
-              color={COLORS.textLight}
-            />
-            <Text style={styles.drawerItemText}>Leave Tracker</Text>
-          </View>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.drawerItem}
-          onPress={() => {
-            closeDrawer();
-            router.push("/skills");
-          }}
-        >
-          <View style={styles.drawerRow}>
-            <Ionicons
-              name="star-outline"
-              size={22}
-              color={COLORS.textLight}
-            />
-            <Text style={styles.drawerItemText}>Skills Tracker</Text>
-          </View>
-        </TouchableOpacity>
 
         {profile?.role === "manager" && (
           <TouchableOpacity

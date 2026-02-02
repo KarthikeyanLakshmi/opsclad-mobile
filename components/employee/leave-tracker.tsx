@@ -11,8 +11,8 @@ import {
   StyleSheet,
   Alert,
 } from "react-native";
-import { Ionicons, Feather } from "@expo/vector-icons";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { Ionicons } from "@expo/vector-icons";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { supabase } from "../../src/lib/supabase";
 import {
   format,
@@ -37,12 +37,6 @@ interface PTORecord {
   is_pto: boolean;
   status: string;
   request_reason?: string;
-}
-
-interface PTORequest {
-  date: string;
-  hours: number;
-  reason: string;
 }
 
 interface EmployeePTOSummary {
@@ -88,18 +82,23 @@ export default function EmployeePTOTrackingScreen() {
   const [dateRange, setDateRange] = useState({ start: "", end: "" });
 
   const [isPTORequestOpen, setIsPTORequestOpen] = useState(false);
-  const [ptoRequest, setPtoRequest] = useState<PTORequest>({
-    date: "",
-    hours: 8, // full day fixed
-    reason: "",
-  });
 
   const [submittingPTO, setSubmittingPTO] = useState(false);
 
   // Date picker visibility states
   const [showStartDatePicker, setShowStartDatePicker] = useState(false);
   const [showEndDatePicker, setShowEndDatePicker] = useState(false);
-  const [showPTODatePicker, setShowPTODatePicker] = useState(false);
+  
+  const [leaveRange, setLeaveRange] = useState({
+    start: "",
+    end: "",
+  })
+
+  const [showStartPicker, setShowStartPicker] = useState(false)
+  const [showEndPicker, setShowEndPicker] = useState(false)
+
+  const [leaveReason, setLeaveReason] = useState("");
+
 
   const BASE_PTO_LIMIT_DAYS = 12;
   const currentYear = selectedYear;
@@ -114,6 +113,8 @@ export default function EmployeePTOTrackingScreen() {
   );
 
   const router = useRouter();
+  const insets = useSafeAreaInsets();
+
 
   /* ------------------------- HELPERS ------------------------- */
 
@@ -242,160 +243,113 @@ export default function EmployeePTOTrackingScreen() {
 
   /* ------------------------- ACTIONS ------------------------- */
 
-  const submitPTORequest = async () => {
-    if (
-      !currentUser ||
-      !currentEmployee ||
-      !ptoRequest.date ||
-      ptoRequest.hours <= 0
-    ) {
-      showError("Invalid Request", "Please fill in all required fields.");
-      return;
+  const checkForDuplicateDates = async (dates: string[]) => {
+    const { data, error } = await supabase
+      .from("pto_records")
+      .select("date")
+      .eq("sender_email", currentUser!.email)
+      .in("date", dates);
+
+    if (error) {
+      throw new Error("Failed to validate existing leave records.");
     }
 
-    const requestDate = new Date(ptoRequest.date);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    requestDate.setHours(0, 0, 0, 0);
-
-    if (!isFuture(requestDate) && !isToday(requestDate)) {
-      showError(
-        "Invalid Date",
-        "You can only request leave for today or future dates."
-      );
-      return;
-    }
-
-    setSubmittingPTO(true);
-
-    try {
-      const dayName = requestDate
-        .toLocaleDateString("en-US", { weekday: "short" })
-        .toUpperCase();
-
-      /* ---------- Prevent duplicate PTO/non-PTO for same date ---------- */
-      const { data: existing, error: existingError } = await supabase
-        .from("pto_records")
-        .select("id, status, is_pto")
-        .eq("sender_email", currentUser.email)
-        .eq("date", ptoRequest.date);
-
-      if (existingError) {
-        console.error("Error checking existing PTO:", existingError);
-      }
-
-      if (existing && existing.length > 0) {
-        showError(
-          "Duplicate Request",
-          `You already have a leave record for ${format(
-            requestDate,
-            "yyyy-MM-dd"
-          )}. Please pick a different date.`
-        );
-        return;
-      }
-      /* -------------------------------------------------------------- */
-
-      /* ---------- PTO automation logic ---------- */
-      // Look at this employee's PTO records for the selected year
-      const yearPtoRecords = ptoRecords.filter((r) => {
-        const d = new Date(r.date);
-        return (
-          r.sender_email === currentEmployee.email_id &&
-          r.is_pto &&
-          d >= yearStart &&
-          d <= yearEnd
-        );
-      });
-
-      const approvedPtoHours = yearPtoRecords
-        .filter((r) => r.status === "approved")
-        .reduce((sum, r) => sum + r.hours, 0);
-
-      const pendingPtoHours = yearPtoRecords
-        .filter((r) => r.status === "pending")
-        .reduce((sum, r) => sum + r.hours, 0);
-
-      const approvedDays = approvedPtoHours / 8;
-      const pendingDays = pendingPtoHours / 8;
-      const totalCommittedDays = approvedDays + pendingDays;
-      const remainingPtoDays = BASE_PTO_LIMIT_DAYS - approvedDays;
-
-      // PTO is considered "fully exhausted & settled" only when:
-      // - all PTO limit days are approved, and
-      // - there are no pending PTO days left.
-      const isPtoExhausted =
-        remainingPtoDays <= 0 && pendingDays === 0;
-
-      let isPTOFlag = true;
-      let activityLabel = "PTO Request";
-
-      if (!isPtoExhausted) {
-        // We still have some PTO capacity OR some pending PTO.
-        // Stop employee from over-booking PTO (approved + pending > limit).
-        const newRequestDays = ptoRequest.hours / 8; // full day = 1
-        if (totalCommittedDays + newRequestDays > BASE_PTO_LIMIT_DAYS) {
-          showError(
-            "PTO Limit Reached",
-            `You have already used or requested ${totalCommittedDays.toFixed(
-              1
-            )} days of PTO this year. Your limit is ${BASE_PTO_LIMIT_DAYS} days. Please wait for your manager to approve or reject existing requests before submitting more PTO.`
-          );
-          return;
-        }
-        // In this branch, request is PTO.
-        isPTOFlag = true;
-        activityLabel = "PTO Request";
-      } else {
-        // PTO days fully used and no pending PTO.
-        // From now on, any new leave will be treated as Non-PTO.
-        isPTOFlag = false;
-        activityLabel = "Non-PTO Leave Request";
-      }
-      /* ------------------------------------------ */
-
-      const { error } = await supabase.from("pto_records").insert({
-        date: ptoRequest.date,
-        day: dayName,
-        hours: ptoRequest.hours, // always 8 (full day)
-        employee_name: currentEmployee.name,
-        employee_id: currentEmployee.employee_id,
-        sender_email: currentUser.email,
-        activity: activityLabel,
-        status: "pending",
-        request_reason: ptoRequest.reason,
-        is_pto: isPTOFlag,
-      });
-
-      if (error) {
-        console.error("Error submitting leave request:", error);
-        showError(
-          "Submission Failed",
-          "Failed to submit your leave request. Please try again."
-        );
-        return;
-      }
-
-      showInfo(
-        "Request Submitted",
-        isPTOFlag
-          ? "Your PTO request has been submitted for manager approval."
-          : "Your Non-PTO leave request has been submitted for manager approval."
-      );
-
-      setPtoRequest({ date: "", hours: 8, reason: "" });
-      setIsPTORequestOpen(false);
-      await loadPTORecords();
-    } catch (err) {
-      console.error("Unexpected error submitting leave request:", err);
-      showError(
-        "Error",
-        "An unexpected error occurred while submitting your request."
-      );
-    } finally {
-      setSubmittingPTO(false);
-    }
+    return data || [];
   };
+
+const submitLeaveRange = async () => {
+  if (!leaveRange.start || !leaveRange.end) {
+    showError("Invalid Request", "Please select a valid date range.");
+    return;
+  }
+
+  setSubmittingPTO(true);
+
+  try {
+    /* ---------------------------------
+       Build date list
+    --------------------------------- */
+    const dates: string[] = [];
+    let cur = new Date(leaveRange.start);
+    const end = new Date(leaveRange.end);
+
+    while (cur <= end) {
+      dates.push(format(cur, "yyyy-MM-dd"));
+      cur.setDate(cur.getDate() + 1);
+    }
+
+    /* ---------------------------------
+       DUPLICATE DATE CHECK (NEW)
+    --------------------------------- */
+    const existing = await checkForDuplicateDates(dates);
+
+    if (existing.length > 0) {
+      showError(
+        "Date Conflict",
+        `You already have leave on:\n${existing
+          .map((e) => e.date)
+          .join(", ")}`
+      );
+      return;
+    }
+
+    /* ---------------------------------
+       Build rows
+    --------------------------------- */
+    const rows = dates.map((date) => ({
+      date,
+      day: new Date(date)
+        .toLocaleDateString("en-US", { weekday: "short" })
+        .toUpperCase(),
+      hours: 8,
+      employee_name: currentEmployee!.name,
+      employee_id: currentEmployee!.employee_id,
+      sender_email: currentUser!.email,
+      activity: "PTO Request",
+      status: "pending",
+      request_reason: leaveReason,
+      is_pto: true,
+    }));
+
+    /* ---------------------------------
+       Insert
+    --------------------------------- */
+    const { error } = await supabase.from("pto_records").insert(rows);
+
+    if (error) {
+      showError("Submission Failed", "Could not submit leave request.");
+      return;
+    }
+
+    showInfo(
+      "Leave Submitted",
+      `Leave requested for ${dates.length} day(s).`
+    );
+
+    /* ---------------------------------
+       Cleanup
+    --------------------------------- */
+    setLeaveRange({ start: "", end: "" });
+    setLeaveReason("");
+    setIsPTORequestOpen(false);
+    loadPTORecords();
+  } catch (err) {
+    console.error(err);
+    showError("Error", "Unexpected error while submitting leave.");
+  } finally {
+    setSubmittingPTO(false);
+  }
+};
+
+
+const resetLeaveForm = () => {
+  setLeaveRange({ start: "", end: "" });
+  setLeaveReason("");
+  setShowStartPicker(false);
+  setShowEndPicker(false);
+};
+
+
 
   /* ------------------------- RENDER ------------------------- */
 
@@ -416,17 +370,16 @@ export default function EmployeePTOTrackingScreen() {
     summary ? summary.remaining_pto_days <= 0 : false;
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: "#FFFFFF" }}>
-      <View style={{ flex: 1, paddingTop: 10, backgroundColor: "#f4f4f5" }}>
+        <View
+          style={{
+            flex: 1,
+            backgroundColor: COLORS.bg,
+            paddingTop: insets.top, // ONLY top safe area
+          }}
+        >
         <View style={[styles.container]}>
           {/* BACK BUTTON + TITLE */}
           <View style={styles.row}>
-            <TouchableOpacity
-              style={styles.backButton}
-              onPress={() => router.push("/(tabs)/home")}
-            >
-              <Feather name="arrow-left" size={22} color={COLORS.primary} />
-            </TouchableOpacity>
             <Text style={styles.headerTitle}>My Leave Tracking</Text>
           </View>
 
@@ -502,8 +455,13 @@ export default function EmployeePTOTrackingScreen() {
             </TouchableOpacity>
           </View>
 
-          <ScrollView style={{ flex: 1 }}>
-            {/* OVERVIEW TAB */}
+        <ScrollView
+          style={{ flex: 1 }}
+          contentContainerStyle={{
+            paddingBottom: 20, // small breathing room, NOT tab bar height
+          }}
+        >      
+          {/* OVERVIEW TAB */}
             {activeTab === "overview" && (
               <View>
                 {/* Date filters */}
@@ -743,43 +701,70 @@ export default function EmployeePTOTrackingScreen() {
             visible={isPTORequestOpen}
             transparent
             animationType="slide"
-            onRequestClose={() => setIsPTORequestOpen(false)}
+            onRequestClose={() => {
+              resetLeaveForm();
+              setIsPTORequestOpen(false);
+            }}          
           >
             <View style={styles.modalOverlay}>
               <View style={styles.modalBox}>
                 <Text style={styles.modalTitle}>Request Leave</Text>
 
                 {/* PTO date picker */}
-                <TouchableOpacity onPress={() => setShowPTODatePicker(true)}>
+                {/* START DATE */}
+                <Text style={styles.label}>Start Date</Text>
+                <TouchableOpacity onPress={() => setShowStartPicker(true)}>
                   <View style={styles.modalInput}>
-                    <Text
-                      style={{
-                        color: ptoRequest.date ? "#111827" : "#9ca3af",
-                      }}
-                    >
-                      {ptoRequest.date || "Date (YYYY-MM-DD)"}
+                    <Text style={{ color: leaveRange.start ? "#111827" : "#9ca3af" }}>
+                      {leaveRange.start || "YYYY-MM-DD"}
                     </Text>
                   </View>
                 </TouchableOpacity>
 
-                {showPTODatePicker && (
+                {showStartPicker && (
                   <DateTimePicker
-                    value={
-                      ptoRequest.date ? new Date(ptoRequest.date) : new Date()
-                    }
+                    value={leaveRange.start ? new Date(leaveRange.start) : new Date()}
                     mode="date"
                     display="spinner"
-                    onChange={(event, selectedDate) => {
-                      setShowPTODatePicker(false);
-                      if (selectedDate) {
-                        setPtoRequest((prev) => ({
-                          ...prev,
-                          date: format(selectedDate, "yyyy-MM-dd"),
-                        }));
-                      }
+                    minimumDate={new Date()}
+                    onChange={(e, d) => {
+                      setShowStartPicker(false);
+                      if (d)
+                        setLeaveRange({ start: format(d, "yyyy-MM-dd"), end: "" });
                     }}
                   />
                 )}
+
+                {/* END DATE */}
+                <Text style={styles.label}>End Date</Text>
+                <TouchableOpacity
+                  disabled={!leaveRange.start}
+                  onPress={() => setShowEndPicker(true)}
+                >
+                  <View style={[styles.modalInput, !leaveRange.start && { opacity: 0.5 }]}>
+                    <Text style={{ color: leaveRange.end ? "#111827" : "#9ca3af" }}>
+                      {leaveRange.end || "YYYY-MM-DD"}
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+
+                {showEndPicker && (
+                  <DateTimePicker
+                    value={leaveRange.end ? new Date(leaveRange.end) : new Date(leaveRange.start)}
+                    mode="date"
+                    display="spinner"
+                    minimumDate={new Date(leaveRange.start)}
+                    onChange={(e, d) => {
+                      setShowEndPicker(false);
+                      if (d)
+                        setLeaveRange(prev => ({
+                          ...prev,
+                          end: format(d, "yyyy-MM-dd"),
+                        }));
+                    }}
+                  />
+                )}
+
 
                 {/* Fixed 8 hours (full day) */}
                 <View style={styles.modalInput}>
@@ -793,22 +778,23 @@ export default function EmployeePTOTrackingScreen() {
                   placeholderTextColor="#9ca3af"
                   style={[styles.modalInput, { height: 80 }]}
                   multiline
-                  value={ptoRequest.reason}
-                  onChangeText={(text) =>
-                    setPtoRequest((prev) => ({ ...prev, reason: text }))
-                  }
+                  value={leaveReason}
+                  onChangeText={setLeaveReason}
                 />
 
                 <View style={styles.modalButtons}>
                   <TouchableOpacity
-                    onPress={() => setIsPTORequestOpen(false)}
+                    onPress={() => {
+                      resetLeaveForm();
+                      setIsPTORequestOpen(false);
+                    }}
                     style={[styles.modalBtn, { borderColor: "#d1d5db" }]}
                   >
                     <Text style={{ color: "#374151" }}>Cancel</Text>
                   </TouchableOpacity>
 
                   <TouchableOpacity
-                    onPress={submitPTORequest}
+                    onPress={submitLeaveRange}
                     disabled={submittingPTO}
                     style={[
                       styles.modalBtn,
@@ -848,7 +834,6 @@ export default function EmployeePTOTrackingScreen() {
           </Modal>
         </View>
       </View>
-    </SafeAreaView>
   );
 }
 
