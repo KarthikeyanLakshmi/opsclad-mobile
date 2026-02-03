@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { useRouter } from "expo-router";
 import {
   View,
   Text,
@@ -9,8 +10,22 @@ import {
   StyleSheet,
   Linking,
 } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { Feather, Ionicons } from "@expo/vector-icons";
 import { supabase } from "@/src/lib/supabase";
+
+/* =========================
+   THEME COLORS (same as User Roles)
+========================= */
+const COLORS = {
+  primary: "#1b2a41",
+  accent: "#ff6b6b",
+  bg: "#F3F4F6",
+  card: "#FFFFFF",
+  border: "#E2E8F0",
+  textDark: "#111827",
+  textMuted: "#475569",
+};
 
 /* ---------------- TYPES ---------------- */
 
@@ -30,12 +45,14 @@ interface Expense {
 /* ---------------- COMPONENT ---------------- */
 
 export default function ManagerExpensesTrackerScreen() {
+  const router = useRouter();
+
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [processing, setProcessing] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [currentUser, setCurrentUser] = useState<any>(null);
 
-  /* ---------------- LOAD CURRENT USER (PTO STYLE) ---------------- */
+  /* ---------------- LOAD CURRENT USER ---------------- */
 
   const loadCurrentUser = async () => {
     const { data, error } = await supabase.auth.getUser();
@@ -49,7 +66,7 @@ export default function ManagerExpensesTrackerScreen() {
     setCurrentUser(data.user);
   };
 
-  /* ---------------- LOAD ALL EXPENSES ---------------- */
+  /* ---------------- LOAD EXPENSES ---------------- */
 
   const loadExpenses = async () => {
     const { data, error } = await supabase
@@ -84,7 +101,6 @@ export default function ManagerExpensesTrackerScreen() {
 
     setProcessing(expenseId);
 
-    /* 1️⃣ Update database */
     const { data, error } = await supabase
       .from("expenses")
       .update({
@@ -103,7 +119,6 @@ export default function ManagerExpensesTrackerScreen() {
       return;
     }
 
-    /* 2️⃣ Move invoice in Google Drive */
     try {
       await fetch("https://your-domain.com/api/move-expense-invoice", {
         method: "POST",
@@ -137,6 +152,7 @@ export default function ManagerExpensesTrackerScreen() {
 
     return (
       <View style={styles.card}>
+        {/* HEADER ROW */}
         <View style={styles.rowBetween}>
           <Text style={styles.employee}>{item.employee_name}</Text>
           <Text style={[styles.status, { color: statusColor }]}>
@@ -146,18 +162,17 @@ export default function ManagerExpensesTrackerScreen() {
 
         <Text style={styles.txn}>{item.transaction_id}</Text>
 
-        <Text style={styles.text}>
-          {item.currency} {item.amount.toFixed(2)} •{" "}
-          {item.reimbursement_type}
+        <Text style={styles.amount}>
+          {item.currency} {item.amount.toFixed(2)}
         </Text>
+
+        <Text style={styles.type}>{item.reimbursement_type}</Text>
 
         <Text style={styles.reason} numberOfLines={2}>
           {item.request_reason}
         </Text>
 
-        <TouchableOpacity
-          onPress={() => Linking.openURL(item.invoice_url)}
-        >
+        <TouchableOpacity onPress={() => Linking.openURL(item.invoice_url)}>
           <Text style={styles.link}>View Invoice</Text>
         </TouchableOpacity>
 
@@ -172,11 +187,7 @@ export default function ManagerExpensesTrackerScreen() {
               <ActivityIndicator color="#fff" />
             ) : (
               <>
-                <Ionicons
-                  name="checkmark-circle-outline"
-                  size={16}
-                  color="#fff"
-                />
+                <Ionicons name="checkmark-circle-outline" size={16} color="#fff" />
                 <Text style={styles.btnText}>Approve</Text>
               </>
             )}
@@ -187,11 +198,7 @@ export default function ManagerExpensesTrackerScreen() {
             style={[styles.btn, styles.rejectBtn]}
             onPress={() => updateStatus(item.id, "rejected")}
           >
-            <Ionicons
-              name="close-circle-outline"
-              size={16}
-              color="#fff"
-            />
+            <Ionicons name="close-circle-outline" size={16} color="#fff" />
             <Text style={styles.btnText}>Reject</Text>
           </TouchableOpacity>
         </View>
@@ -204,116 +211,152 @@ export default function ManagerExpensesTrackerScreen() {
   if (loading) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator size="large" />
-        <Text>Loading expenses…</Text>
+        <ActivityIndicator size="large" color={COLORS.accent} />
+        <Text style={{ color: COLORS.textMuted }}>Loading expenses…</Text>
       </View>
     );
   }
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Expenses Approval</Text>
+    <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.bg }}>
+      <View style={styles.container}>
+        {/* HEADER (same as User Roles) */}
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => router.back()}>
+            <Feather name="arrow-left" size={22} color={COLORS.primary} />
+          </TouchableOpacity>
+          <Text style={styles.title}>Expenses Approval</Text>
+        </View>
 
-      <FlatList
-        data={expenses}
-        keyExtractor={(i) => i.id}
-        renderItem={renderExpense}
-        ListEmptyComponent={
-          <Text style={styles.empty}>No expenses found</Text>
-        }
-        contentContainerStyle={{ paddingBottom: 20 }}
-      />
-    </View>
+        <FlatList
+          data={expenses}
+          keyExtractor={(i) => i.id}
+          renderItem={renderExpense}
+          ListEmptyComponent={
+            <Text style={styles.empty}>No expenses found</Text>
+          }
+          contentContainerStyle={{ paddingBottom: 20 }}
+        />
+      </View>
+    </SafeAreaView>
   );
 }
 
-/* ---------------- STYLES ---------------- */
+/* =========================
+   STYLES (aligned with User Roles)
+========================= */
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 14,
-    backgroundColor: "#0f172a",
+  container: { flex: 1, padding: 20 },
+
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    marginBottom: 10,
   },
+
+  title: {
+    fontSize: 22,
+    fontWeight: "700",
+    color: COLORS.primary,
+  },
+
   center: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
   },
-  title: {
-    fontSize: 20,
-    fontWeight: "700",
-    color: "#ffffff",
-    marginBottom: 12,
-  },
+
   card: {
-    backgroundColor: "#020617",
-    borderRadius: 14,
-    padding: 14,
-    marginBottom: 12,
+    backgroundColor: COLORS.card,
+    padding: 15,
+    borderRadius: 12,
+    marginBottom: 15,
     borderWidth: 1,
-    borderColor: "#1e293b",
+    borderColor: COLORS.border,
   },
+
   rowBetween: {
     flexDirection: "row",
     justifyContent: "space-between",
+    alignItems: "center",
   },
+
   employee: {
+    fontSize: 16,
     fontWeight: "700",
-    color: "#e5e7eb",
+    color: COLORS.textDark,
   },
+
   status: {
-    fontWeight: "700",
     fontSize: 12,
+    fontWeight: "700",
   },
+
   txn: {
-    fontSize: 11,
-    color: "#94a3b8",
+    fontSize: 12,
+    color: COLORS.textMuted,
+    marginTop: 4,
+  },
+
+  amount: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: COLORS.textDark,
+    marginTop: 6,
+  },
+
+  type: {
+    color: COLORS.textMuted,
     marginTop: 2,
   },
-  text: {
-    color: "#e5e7eb",
-    marginTop: 6,
-  },
+
   reason: {
-    color: "#cbd5f5",
-    fontSize: 12,
+    color: COLORS.textMuted,
+    fontSize: 13,
     marginTop: 6,
   },
+
   link: {
-    color: "#60a5fa",
+    color: "#2563eb",
     marginTop: 6,
     fontWeight: "600",
   },
+
   actions: {
     flexDirection: "row",
     gap: 10,
-    marginTop: 10,
+    marginTop: 12,
   },
+
   btn: {
+    flex: 1,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: 8,
-    paddingHorizontal: 12,
+    paddingVertical: 10,
     borderRadius: 10,
-    flex: 1,
     gap: 6,
   },
+
   approveBtn: {
     backgroundColor: "#16a34a",
   },
+
   rejectBtn: {
     backgroundColor: "#dc2626",
   },
+
   btnText: {
     color: "#ffffff",
     fontSize: 13,
     fontWeight: "600",
   },
+
   empty: {
     textAlign: "center",
-    color: "#94a3b8",
+    color: COLORS.textMuted,
     marginTop: 40,
   },
 });

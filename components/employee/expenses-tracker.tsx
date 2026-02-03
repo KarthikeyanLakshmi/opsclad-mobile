@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { useRouter } from "expo-router";
 import {
   View,
   Text,
@@ -11,9 +12,28 @@ import {
   StyleSheet,
 } from "react-native";
 import * as DocumentPicker from "expo-document-picker";
+import DropDownPicker from "react-native-dropdown-picker";
 import { WebView } from "react-native-webview";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { Feather } from "@expo/vector-icons";
 import { supabase } from "../../src/lib/supabase";
 
+/* =========================
+   THEME COLORS
+========================= */
+const COLORS = {
+  primary: "#1b2a41",
+  accent: "#ff6b6b",
+  bg: "#F3F4F6",
+  card: "#FFFFFF",
+  border: "#E2E8F0",
+  textDark: "#111827",
+  textMuted: "#475569",
+};
+
+/* =========================
+   TYPES
+========================= */
 interface Expense {
   id: string;
   amount: number;
@@ -26,14 +46,37 @@ interface Expense {
   created_at: string;
 }
 
+/* =========================
+   CURRENCY LIST
+========================= */
+const CURRENCIES = [
+  "SGD","USD","EUR","GBP","INR","AUD","CAD","JPY","CNY","MYR","IDR",
+  "THB","PHP","HKD","KRW","NZD","CHF","SEK","NOK","DKK"
+].map(c => ({ label: c, value: c }));
+
+/* =========================
+  EXPENSE TYPES
+========================= */
+const EXPENSE_TYPES = [
+  { label: "Travel", value: "travel" },
+  { label: "Meals", value: "meals" },
+  { label: "Office Supplies", value: "office" },
+  { label: "Client Expense", value: "client" },
+  { label: "Professional Development", value: "professional" },
+];
+
 export default function EmployeeExpensesScreen() {
+  const router = useRouter();
+
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [loading, setLoading] = useState(true);
 
   const [amount, setAmount] = useState("");
-  const [currency, setCurrency] = useState("");
+  const [currency, setCurrency] = useState<string | null>(null);
   const [type, setType] = useState("");
+  const [typeOpen, setTypeOpen] = useState(false);
+  const [typeItems, setTypeItems] = useState(EXPENSE_TYPES);
   const [description, setDescription] = useState("");
   const [file, setFile] =
     useState<DocumentPicker.DocumentPickerAsset | null>(null);
@@ -41,7 +84,11 @@ export default function EmployeeExpensesScreen() {
   const [submitting, setSubmitting] = useState(false);
   const [driveReady, setDriveReady] = useState<boolean | null>(null);
 
-  /* ---------------- AUTH (PTO STYLE) ---------------- */
+  /* currency dropdown state */
+  const [currencyOpen, setCurrencyOpen] = useState(false);
+  const [currencyItems, setCurrencyItems] = useState(CURRENCIES);
+
+  /* ---------------- AUTH ---------------- */
 
   const loadCurrentUser = async () => {
     const { data, error } = await supabase.auth.getUser();
@@ -125,10 +172,7 @@ export default function EmployeeExpensesScreen() {
     }
 
     if (!driveReady) {
-      Alert.alert(
-        "Google Drive not ready",
-        "Expense uploads are unavailable."
-      );
+      Alert.alert("Google Drive not ready", "Uploads are unavailable.");
       return;
     }
 
@@ -166,15 +210,12 @@ export default function EmployeeExpensesScreen() {
       );
 
       const json = await res.json();
-
-      if (!res.ok || !json.success) {
-        throw new Error(json.error || "Submission failed");
-      }
+      if (!res.ok || !json.success) throw new Error(json.error);
 
       Alert.alert("Success", "Expense submitted for approval.");
 
       setAmount("");
-      setCurrency("");
+      setCurrency(null);
       setType("");
       setDescription("");
       setFile(null);
@@ -192,129 +233,195 @@ export default function EmployeeExpensesScreen() {
   if (loading) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator size="large" />
-        <Text>Loading expenses…</Text>
+        <ActivityIndicator size="large" color={COLORS.accent} />
+        <Text style={{ color: COLORS.textMuted }}>Loading expenses…</Text>
       </View>
     );
   }
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>My Expenses</Text>
+    <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.bg }}>
+      <View style={styles.container}>
+        {/* HEADER */}
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => router.back()}>
+            <Feather name="arrow-left" size={22} color={COLORS.primary} />
+          </TouchableOpacity>
+          <Text style={styles.title}>My Expenses</Text>
+        </View>
 
-      <TextInput
-        placeholder="Currency (SGD, USD)"
-        value={currency}
-        onChangeText={setCurrency}
-        style={styles.input}
-      />
-
-      <TextInput
-        placeholder="Amount"
-        keyboardType="numeric"
-        value={amount}
-        onChangeText={setAmount}
-        style={styles.input}
-      />
-
-      <TextInput
-        placeholder="Expense Type"
-        value={type}
-        onChangeText={setType}
-        style={styles.input}
-      />
-
-      <TextInput
-        placeholder="Description"
-        value={description}
-        onChangeText={setDescription}
-        style={[styles.input, { height: 80 }]}
-        multiline
-      />
-
-      <TouchableOpacity style={styles.fileBtn} onPress={pickFile}>
-        <Text>{file ? file.name : "Upload Invoice"}</Text>
-      </TouchableOpacity>
-
-      {file?.mimeType?.startsWith("image/") && (
-        <Image
-          source={{ uri: file.uri }}
-          style={{ height: 200, marginVertical: 10 }}
-          resizeMode="contain"
+        {/* FORM */}
+        <DropDownPicker
+          open={currencyOpen}
+          value={currency}
+          items={currencyItems}
+          setOpen={setCurrencyOpen}
+          setValue={setCurrency}
+          setItems={setCurrencyItems}
+          placeholder="Select currency"
+          style={styles.dropdown}
+          dropDownContainerStyle={styles.dropdownContainer}
+          zIndex={3000}
         />
-      )}
 
-      {file?.mimeType === "application/pdf" && (
-        <WebView source={{ uri: file.uri }} style={{ height: 300 }} />
-      )}
+        <TextInput
+          placeholder="Amount"
+          keyboardType="numeric"
+          value={amount}
+          onChangeText={setAmount}
+          style={styles.input}
+        />
 
-      <TouchableOpacity
-        style={styles.submitBtn}
-        onPress={submitExpense}
-        disabled={submitting}
-      >
-        {submitting ? (
-          <ActivityIndicator color="#fff" />
-        ) : (
-          <Text style={styles.submitText}>Submit Expense</Text>
+        {/* EXPENSE TYPE DROPDOWN */}
+        <DropDownPicker
+          open={typeOpen}
+          value={type}
+          items={typeItems}
+          setOpen={setTypeOpen}
+          setValue={setType}
+          setItems={setTypeItems}
+          placeholder="Select expense type"
+          style={styles.dropdown}
+          dropDownContainerStyle={styles.dropdownContainer}
+          zIndex={2000}
+          zIndexInverse={3000}
+        />
+
+
+        <TextInput
+          placeholder="Description"
+          value={description}
+          onChangeText={setDescription}
+          style={[styles.input, { height: 90 }]}
+          multiline
+        />
+
+        <TouchableOpacity style={styles.fileBtn} onPress={pickFile}>
+          <Feather name="upload" size={16} color={COLORS.primary} />
+          <Text style={{ color: COLORS.textDark }}>
+            {file ? file.name : "Upload Invoice"}
+          </Text>
+        </TouchableOpacity>
+
+        {file?.mimeType?.startsWith("image/") && (
+          <Image source={{ uri: file.uri }} style={styles.preview} />
         )}
-      </TouchableOpacity>
 
-      <FlatList
-        data={expenses}
-        keyExtractor={(i) => i.id}
-        ListEmptyComponent={
-          <Text style={styles.empty}>No expenses submitted yet</Text>
-        }
-        renderItem={({ item }) => (
-          <View style={styles.row}>
-            <Text style={styles.txn}>{item.transaction_id}</Text>
-            <Text>
-              {item.currency} {item.amount}
-            </Text>
-            <Text>{item.reimbursement_type}</Text>
-            <Text style={styles[item.status]}>{item.status.toUpperCase()}</Text>
-          </View>
+        {file?.mimeType === "application/pdf" && (
+          <WebView source={{ uri: file.uri }} style={{ height: 300 }} />
         )}
-      />
-    </View>
+
+        <TouchableOpacity
+          style={styles.submitBtn}
+          onPress={submitExpense}
+          disabled={submitting}
+        >
+          {submitting ? (
+            <ActivityIndicator color="#fff" />
+          ) : (
+            <Text style={styles.submitText}>Submit Expense</Text>
+          )}
+        </TouchableOpacity>
+
+        {/* EXPENSE LIST */}
+        <FlatList
+          data={expenses}
+          keyExtractor={(i) => i.id}
+          ListEmptyComponent={
+            <Text style={styles.empty}>No expenses submitted yet</Text>
+          }
+          renderItem={({ item }) => (
+            <View style={styles.card}>
+              <Text style={styles.txn}>{item.transaction_id}</Text>
+              <Text style={styles.amount}>
+                {item.currency} {item.amount}
+              </Text>
+              <Text style={styles.type}>{item.reimbursement_type}</Text>
+              <Text style={styles[item.status]}>
+                {item.status.toUpperCase()}
+              </Text>
+            </View>
+          )}
+        />
+      </View>
+    </SafeAreaView>
   );
 }
 
-/* ---------------- STYLES ---------------- */
-
+/* =========================
+   STYLES
+========================= */
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 16, backgroundColor: "#f8fafc" },
+  container: { flex: 1, padding: 20 },
+
+  header: { flexDirection: "row", alignItems: "center", gap: 10 },
+  title: { fontSize: 22, fontWeight: "700", color: COLORS.primary },
+
   center: { flex: 1, alignItems: "center", justifyContent: "center" },
-  title: { fontSize: 20, fontWeight: "700", marginBottom: 12 },
+
   input: {
     backgroundColor: "#fff",
-    borderRadius: 8,
-    padding: 10,
-    marginBottom: 10,
-  },
-  fileBtn: {
-    borderWidth: 1,
-    borderRadius: 8,
+    borderRadius: 10,
     padding: 12,
     marginBottom: 10,
+    borderWidth: 1,
+    borderColor: COLORS.border,
   },
-  submitBtn: {
-    backgroundColor: "#0A1A4F",
-    padding: 14,
+
+  dropdown: {
+    borderColor: COLORS.border,
     borderRadius: 10,
+    marginBottom: 10,
+  },
+
+  dropdownContainer: {
+    borderColor: COLORS.border,
+  },
+
+  fileBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    borderWidth: 1,
+    borderRadius: 10,
+    padding: 12,
+    marginBottom: 10,
+    borderColor: COLORS.border,
+    backgroundColor: "#fff",
+  },
+
+  preview: {
+    height: 200,
+    marginVertical: 10,
+    borderRadius: 10,
+  },
+
+  submitBtn: {
+    backgroundColor: COLORS.accent,
+    padding: 14,
+    borderRadius: 12,
     alignItems: "center",
     marginVertical: 12,
   },
-  submitText: { color: "#fff", fontWeight: "600" },
-  row: {
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderColor: "#e5e7eb",
+
+  submitText: { color: "#fff", fontWeight: "700" },
+
+  card: {
+    backgroundColor: COLORS.card,
+    padding: 14,
+    borderRadius: 12,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: COLORS.border,
   },
-  txn: { fontSize: 12, color: "#6b7280" },
-  pending: { color: "#ca8a04" },
-  approved: { color: "#16a34a" },
-  rejected: { color: "#dc2626" },
-  empty: { textAlign: "center", marginTop: 30, color: "#6b7280" },
+
+  txn: { fontSize: 12, color: COLORS.textMuted },
+  amount: { fontSize: 16, fontWeight: "600", color: COLORS.textDark },
+  type: { color: COLORS.textMuted },
+
+  pending: { color: "#ca8a04", fontWeight: "600" },
+  approved: { color: "#16a34a", fontWeight: "600" },
+  rejected: { color: "#dc2626", fontWeight: "600" },
+
+  empty: { textAlign: "center", marginTop: 30, color: COLORS.textMuted },
 });

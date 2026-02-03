@@ -8,7 +8,7 @@ import { supabase } from "../../src/lib/supabase";
 
 // Manager and Employee screens
 import ExtractionIndex from "../../components/manager/extraction-index";
-import TimesheetTracker from "../../components/employee/timesheet-tracker";
+import EmployeeTimesheets from "../../components/employee/timesheet-tracker";
 
 /* =========================
    THEME COLORS
@@ -20,16 +20,17 @@ const COLORS = {
 };
 
 export default function TimesheetScreen() {
-  const [role, setRole] = useState<string | null>(null);
+  const [role, setRole] = useState<"manager" | "employee">("employee");
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function loadRole() {
       try {
-        const { data: auth, error: authError } = await supabase.auth.getUser();
+        const { data: auth, error: authError } =
+          await supabase.auth.getUser();
+
         if (authError || !auth?.user) {
           setRole("employee");
-          setLoading(false);
           return;
         }
 
@@ -39,7 +40,7 @@ export default function TimesheetScreen() {
           .eq("user_id", auth.user.id)
           .single();
 
-        setRole(roleData?.role || "employee");
+        setRole(roleData?.role === "manager" ? "manager" : "employee");
       } catch (e) {
         console.log("Role load error:", e);
         setRole("employee");
@@ -69,7 +70,8 @@ export default function TimesheetScreen() {
     return <ExtractionIndex />;
   }
 
-  return <TimesheetTracker />;
+  // 👇 EMPLOYEE NOW GETS THE TABBED TIMESHEET VIEW
+  return <EmployeeTimesheets />;
 }
 
 /* =========================
