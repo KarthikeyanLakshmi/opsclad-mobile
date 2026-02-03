@@ -17,19 +17,19 @@ import { supabase } from "@/src/lib/supabase";
    THEME
 ========================= */
 const COLORS = {
-  bg: "#f4f4f5",          // light neutral background
+  bg: "#f4f4f5",
   card: "#ffffff",
   border: "#e5e7eb",
 
-  primary: "#1b2a41",     // navy (main brand)
-  accent: "#ff6b6b",      // coral (actions / highlights)
+  primary: "#1b2a41",
+  accent: "#ff6b6b",
 
   text: "#1b2a41",
   muted: "#6b7280",
 
-  success: "#16a34a",     // green (safe to keep)
-  warning: "#f59e0b",     // amber
-  danger: "#ef4444",      // red
+  success: "#16a34a",
+  warning: "#f59e0b",
+  danger: "#ef4444",
 };
 
 /* =========================
@@ -39,7 +39,6 @@ export default function ManualTimesheetEntryScreen() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
 
-  const [currentUser, setCurrentUser] = useState<any>(null);
   const [profile, setProfile] = useState<any>(null);
 
   /* Date range */
@@ -83,30 +82,28 @@ export default function ManualTimesheetEntryScreen() {
       return;
     }
 
-    setCurrentUser(data.user);
-
     const { data: role, error } = await supabase
-    .from("user_roles")
-    .select("profiles(employee_id, username, email)")
-    .eq("user_id", data.user.id)
-    .single();
+      .from("user_roles")
+      .select("profiles(employee_id, username, email)")
+      .eq("user_id", data.user.id)
+      .single();
 
     if (error || !role?.profiles) {
-    Alert.alert("Profile error", "Unable to load profile");
-    return;
+      Alert.alert("Profile error", "Unable to load profile");
+      return;
     }
 
-const profile = Array.isArray(role.profiles)
-  ? role.profiles[0]
-  : role.profiles;
+    const profile = Array.isArray(role.profiles)
+      ? role.profiles[0]
+      : role.profiles;
 
-if (!profile?.employee_id) {
-  Alert.alert("Profile error", "Employee ID not found");
-  return;
-}
+    if (!profile?.employee_id) {
+      Alert.alert("Profile error", "Employee ID not found");
+      return;
+    }
 
-setProfile(profile);
-loadAssignedProjects(profile.employee_id);
+    setProfile(profile);
+    loadAssignedProjects(profile.employee_id);
     setLoading(false);
   };
 
@@ -184,7 +181,12 @@ loadAssignedProjects(profile.employee_id);
           return { date: d, exists: false, blocked: true, blockedReason: "PTO" };
         }
         if (holidaySet.has(d)) {
-          return { date: d, exists: false, blocked: true, blockedReason: "HOLIDAY" };
+          return {
+            date: d,
+            exists: false,
+            blocked: true,
+            blockedReason: "HOLIDAY",
+          };
         }
         return {
           date: d,
@@ -208,16 +210,13 @@ loadAssignedProjects(profile.employee_id);
       return;
     }
 
-    if (rangeStatus.length === 0) {
-      Alert.alert("Select dates", "Please select a valid date range.");
-      return;
-    }
-
     const payload = rangeStatus
       .filter(r => !r.blocked)
       .map(r => ({
         date: toMMDDYYYY(r.date),
-        day: new Date(r.date).toLocaleDateString("en-US", { weekday: "long" }),
+        day: new Date(r.date).toLocaleDateString("en-US", {
+          weekday: "long",
+        }),
         hours,
         required_hours: 8,
         client,
@@ -268,12 +267,20 @@ loadAssignedProjects(profile.employee_id);
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.bg }}>
-      <ScrollView contentContainerStyle={styles.container}>
+      <ScrollView
+        style={{ flex: 1 }}
+        contentContainerStyle={{ flexGrow: 1, padding: 16 }}
+      >
         <View style={styles.card}>
-          {/* DATE RANGE */}
+          {/* FROM DATE */}
           <Text style={styles.label}>From Date</Text>
-          <TouchableOpacity style={styles.dateBtn} onPress={() => setShowFromPicker(true)}>
-            <Text style={styles.text}>{fromDate || "Select date"}</Text>
+          <TouchableOpacity
+            style={styles.inputBox}
+            onPress={() => setShowFromPicker(true)}
+          >
+            <Text style={styles.inputText}>
+              {fromDate || "Select date"}
+            </Text>
           </TouchableOpacity>
 
           {showFromPicker && (
@@ -287,9 +294,15 @@ loadAssignedProjects(profile.employee_id);
             />
           )}
 
+          {/* TO DATE */}
           <Text style={styles.label}>To Date</Text>
-          <TouchableOpacity style={styles.dateBtn} onPress={() => setShowToPicker(true)}>
-            <Text style={styles.text}>{toDate || "Select date"}</Text>
+          <TouchableOpacity
+            style={styles.inputBox}
+            onPress={() => setShowToPicker(true)}
+          >
+            <Text style={styles.inputText}>
+              {toDate || "Select date"}
+            </Text>
           </TouchableOpacity>
 
           {showToPicker && (
@@ -305,29 +318,35 @@ loadAssignedProjects(profile.employee_id);
 
           {/* HOURS */}
           <Text style={styles.label}>Hours</Text>
-          <Picker selectedValue={hours} onValueChange={setHours}>
-            {[1,2,3,4,5,6,7,8].map(h => (
-              <Picker.Item key={h} label={`${h}`} value={h} />
-            ))}
-          </Picker>
+          <View style={styles.inputBox}>
+            <Picker selectedValue={hours} onValueChange={setHours}>
+              {[1,2,3,4,5,6,7,8].map(h => (
+                <Picker.Item key={h} label={`${h}`} value={h} />
+              ))}
+            </Picker>
+          </View>
 
           {/* CLIENT */}
           <Text style={styles.label}>Client</Text>
-          <Picker selectedValue={client} onValueChange={setClient}>
-            <Picker.Item label="Select client" value="" />
-            {clients.map(c => (
-              <Picker.Item key={c} label={c} value={c} />
-            ))}
-          </Picker>
+          <View style={styles.inputBox}>
+            <Picker selectedValue={client} onValueChange={setClient}>
+              <Picker.Item label="Select client" value="" />
+              {clients.map(c => (
+                <Picker.Item key={c} label={c} value={c} />
+              ))}
+            </Picker>
+          </View>
 
           {/* PROJECT */}
           <Text style={styles.label}>Project</Text>
-          <Picker selectedValue={project} onValueChange={setProject}>
-            <Picker.Item label="Select project" value="" />
-            {projects.map(p => (
-              <Picker.Item key={p} label={p} value={p} />
-            ))}
-          </Picker>
+          <View style={styles.inputBox}>
+            <Picker selectedValue={project} onValueChange={setProject}>
+              <Picker.Item label="Select project" value="" />
+              {projects.map(p => (
+                <Picker.Item key={p} label={p} value={p} />
+              ))}
+            </Picker>
+          </View>
 
           {/* PREVIEW */}
           {rangeStatus.length > 0 && (
@@ -343,7 +362,12 @@ loadAssignedProjects(profile.employee_id);
                       : COLORS.success,
                   }}
                 >
-                  {r.date} → {r.blocked ? r.blockedReason : r.exists ? "Update" : "New"}
+                  {r.date} →{" "}
+                  {r.blocked
+                    ? r.blockedReason
+                    : r.exists
+                    ? "Update"
+                    : "New"}
                 </Text>
               ))}
             </View>
@@ -368,13 +392,17 @@ loadAssignedProjects(profile.employee_id);
    STYLES
 ========================= */
 const styles = StyleSheet.create({
-  container: { padding: 16 },
-  center: { flex: 1, justifyContent: "center", alignItems: "center" },
+  center: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
 
   card: {
+    flex: 1,
     backgroundColor: COLORS.card,
-    borderRadius: 5,
-    padding: 5,
+    borderRadius: 12,
+    padding: 16,
     borderWidth: 1,
     borderColor: COLORS.border,
   },
@@ -386,14 +414,18 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
 
-  text: { color: COLORS.text },
-
-  dateBtn: {
+  inputBox: {
     backgroundColor: COLORS.bg,
-    padding: 12,
-    borderRadius: 8,
     borderWidth: 1,
     borderColor: COLORS.border,
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    marginBottom: 6,
+  },
+
+  inputText: {
+    color: COLORS.text,
+    paddingVertical: 12,
   },
 
   preview: {

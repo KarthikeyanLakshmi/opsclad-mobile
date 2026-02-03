@@ -452,6 +452,8 @@ const styles = StyleSheet.create({
     padding: 16,
     borderRadius: 14,
     marginBottom: 20,
+    borderTopWidth: 4,
+    borderRightWidth: 4,
     borderLeftWidth: 4,
     borderColor: COLORS.primary,
   },
@@ -517,6 +519,7 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     marginBottom: 20,
     borderLeftWidth: 4,
+    borderRightWidth: 4,
     borderColor: COLORS.primary,
   },
 
@@ -533,6 +536,8 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     marginBottom: 30,
     borderLeftWidth: 4,
+    borderRightWidth: 4,
+    borderBottomWidth: 4,
     borderColor: COLORS.primary,
   },
 

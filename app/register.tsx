@@ -49,7 +49,7 @@ export default function RegisterScreen() {
       setLoading(true);
 
       const res = await fetch(
-        `${process.env.EXPO_PUBLIC_API_URL}/api/register`,
+        `${process.env.EXPO_PUBLIC_API_URL}/api/auth/register`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },

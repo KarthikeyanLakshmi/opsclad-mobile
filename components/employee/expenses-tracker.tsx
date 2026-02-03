@@ -10,6 +10,8 @@ import {
   Image,
   FlatList,
   StyleSheet,
+  ScrollView, 
+  Dimensions,
 } from "react-native";
 import * as DocumentPicker from "expo-document-picker";
 import DropDownPicker from "react-native-dropdown-picker";
@@ -17,6 +19,12 @@ import { WebView } from "react-native-webview";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
 import { supabase } from "../../src/lib/supabase";
+import currencyCodes from "currency-codes-ts";
+import * as Linking from "expo-linking";
+import * as Sharing from "expo-sharing";
+
+
+
 
 /* =========================
    THEME COLORS
@@ -49,10 +57,11 @@ interface Expense {
 /* =========================
    CURRENCY LIST
 ========================= */
-const CURRENCIES = [
-  "SGD","USD","EUR","GBP","INR","AUD","CAD","JPY","CNY","MYR","IDR",
-  "THB","PHP","HKD","KRW","NZD","CHF","SEK","NOK","DKK"
-].map(c => ({ label: c, value: c }));
+
+export const CURRENCIES = currencyCodes.data.map(c => ({
+  value: c.code,
+  label: `${c.code} — ${c.currency}`,
+}))
 
 /* =========================
   EXPENSE TYPES
@@ -83,6 +92,8 @@ export default function EmployeeExpensesScreen() {
 
   const [submitting, setSubmitting] = useState(false);
   const [driveReady, setDriveReady] = useState<boolean | null>(null);
+  const [imageHeight, setImageHeight] = useState<number | null>(null);
+
 
   /* currency dropdown state */
   const [currencyOpen, setCurrencyOpen] = useState(false);
@@ -142,6 +153,22 @@ export default function EmployeeExpensesScreen() {
       loadExpenses(currentUser.email);
     }
   }, [currentUser]);
+
+  useEffect(() => {
+    if (file?.mimeType?.startsWith("image/")) {
+      Image.getSize(
+        file.uri,
+        (width, height) => {
+          const screenWidth = Dimensions.get("window").width - 40; // padding safe
+          const ratio = height / width;
+          setImageHeight(screenWidth * ratio);
+        },
+        (error) => {
+          console.warn("Failed to get image size", error);
+        }
+      );
+    }
+  }, [file]);
 
   /* ---------------- PICK FILE ---------------- */
 
@@ -251,6 +278,7 @@ export default function EmployeeExpensesScreen() {
         </View>
 
         {/* FORM */}
+        <Text style={styles.label}>Currency</Text>
         <DropDownPicker
           open={currencyOpen}
           value={currency}
@@ -263,9 +291,9 @@ export default function EmployeeExpensesScreen() {
           dropDownContainerStyle={styles.dropdownContainer}
           zIndex={3000}
         />
-
+        <Text style={styles.label}>Amount</Text>
         <TextInput
-          placeholder="Amount"
+          placeholder="0.00"
           keyboardType="numeric"
           value={amount}
           onChangeText={setAmount}
@@ -273,6 +301,7 @@ export default function EmployeeExpensesScreen() {
         />
 
         {/* EXPENSE TYPE DROPDOWN */}
+        <Text style={styles.label}>Expense Type</Text>
         <DropDownPicker
           open={typeOpen}
           value={type}
@@ -288,14 +317,16 @@ export default function EmployeeExpensesScreen() {
         />
 
 
+        <Text style={styles.label}>Description / Reason</Text>
         <TextInput
-          placeholder="Description"
+          placeholder="Enter description or reason for expense"
           value={description}
           onChangeText={setDescription}
           style={[styles.input, { height: 90 }]}
           multiline
         />
 
+        <Text style={styles.label}>Invoice / Receipt</Text>
         <TouchableOpacity style={styles.fileBtn} onPress={pickFile}>
           <Feather name="upload" size={16} color={COLORS.primary} />
           <Text style={{ color: COLORS.textDark }}>
@@ -303,12 +334,39 @@ export default function EmployeeExpensesScreen() {
           </Text>
         </TouchableOpacity>
 
-        {file?.mimeType?.startsWith("image/") && (
-          <Image source={{ uri: file.uri }} style={styles.preview} />
+        {file?.mimeType?.startsWith("image/") && imageHeight && (
+          <ScrollView
+            style={{ maxHeight: 400 }}     // prevents layout explosion
+            contentContainerStyle={{ alignItems: "center" }}
+            showsVerticalScrollIndicator
+          >
+            <Image
+              source={{ uri: file.uri }}
+              style={{
+                width: "100%",
+                height: imageHeight,
+                borderRadius: 10,
+              }}
+              resizeMode="contain"
+            />
+          </ScrollView>
         )}
 
-        {file?.mimeType === "application/pdf" && (
-          <WebView source={{ uri: file.uri }} style={{ height: 300 }} />
+        {file && file.mimeType === "application/pdf" && (
+          <TouchableOpacity
+            style={styles.fileBtn}
+            onPress={async () => {
+              if (!(await Sharing.isAvailableAsync())) {
+                Alert.alert("Not supported", "Cannot open PDF on this device.");
+                return;
+              }
+
+              await Sharing.shareAsync(file.uri);
+            }}
+          >
+            <Feather name="file-text" size={16} color={COLORS.primary} />
+            <Text style={{ color: COLORS.primary }}>Open PDF</Text>
+          </TouchableOpacity>
         )}
 
         <TouchableOpacity
@@ -352,9 +410,19 @@ export default function EmployeeExpensesScreen() {
    STYLES
 ========================= */
 const styles = StyleSheet.create({
+
+  label: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: COLORS.textMuted,
+    marginBottom: 4,
+    marginTop: 6,
+    paddingLeft: 4,
+  },
+
   container: { flex: 1, padding: 20 },
 
-  header: { flexDirection: "row", alignItems: "center", gap: 10 },
+  header: { flexDirection: "row", alignItems: "center", gap: 10, paddingBottom: 20 },
   title: { fontSize: 22, fontWeight: "700", color: COLORS.primary },
 
   center: { flex: 1, alignItems: "center", justifyContent: "center" },
