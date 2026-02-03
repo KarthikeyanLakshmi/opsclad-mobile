@@ -141,6 +141,24 @@ export default function TabsLayout() {
 
         {/* Drawer Items */}
 
+        {/* Expenses */}
+        <TouchableOpacity
+          style={styles.drawerItem}
+          onPress={() => {
+            closeDrawer();
+            router.push("../expense");
+          }}
+        >
+          <View style={styles.drawerRow}>
+            <Ionicons
+              name="wallet-outline"
+              size={22}
+              color={COLORS.textLight}
+            />
+            <Text style={styles.drawerItemText}>Expenses</Text>
+          </View>
+        </TouchableOpacity>
+
         {profile?.role === "manager" && (
           <TouchableOpacity
             style={styles.drawerItem}

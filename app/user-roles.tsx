@@ -6,23 +6,20 @@ import {
   TextInput,
   TouchableOpacity,
   FlatList,
-  Switch,
   StyleSheet,
-  Modal,
   ActivityIndicator,
-  ScrollView,
 } from "react-native";
 import { Picker } from "@react-native-picker/picker";
-import { supabase } from "@/src/lib/supabase";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
+import { supabase } from "@/src/lib/supabase";
 
 /* =========================
    THEME COLORS
 ========================= */
 const COLORS = {
-  primary: "#1b2a41",   // deep navy
-  accent: "#ff6b6b",    // coral
+  primary: "#1b2a41",
+  accent: "#ff6b6b",
   bg: "#F3F4F6",
   card: "#FFFFFF",
   border: "#E2E8F0",
@@ -37,7 +34,6 @@ interface UserRole {
   id: string;
   user_id: string;
   role: "manager" | "employee" | "viewer";
-  permissions: any;
   is_active: boolean;
   email?: string;
   username?: string;
@@ -51,44 +47,6 @@ interface Profile {
   employee_id: string;
 }
 
-const defaultPermissions = {
-  timesheet_tracker: false,
-  task_tracker: false,
-  leave_tracker: false,
-  skill_tracker: false,
-  user_role_management: false,
-  settings: false,
-};
-
-type Role = "manager" | "employee" | "viewer";
-
-const rolePermissionTemplates: Record<Role, typeof defaultPermissions> = {
-  manager: {
-    timesheet_tracker: true,
-    task_tracker: true,
-    leave_tracker: true,
-    skill_tracker: true,
-    user_role_management: true,
-    settings: true,
-  },
-  employee: {
-    timesheet_tracker: true,
-    task_tracker: true,
-    leave_tracker: false,
-    skill_tracker: true,
-    user_role_management: false,
-    settings: false,
-  },
-  viewer: {
-    timesheet_tracker: true,
-    task_tracker: true,
-    leave_tracker: false,
-    skill_tracker: false,
-    user_role_management: false,
-    settings: false,
-  },
-};
-
 export default function UserRoleManagement() {
   const router = useRouter();
 
@@ -99,29 +57,15 @@ export default function UserRoleManagement() {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterRole, setFilterRole] = useState("all");
 
-  const [assignModal, setAssignModal] = useState(false);
-  const [editModal, setEditModal] = useState(false);
-  const [deleteModal, setDeleteModal] = useState(false);
-
-  const [selectedUserId, setSelectedUserId] = useState("");
-  const [editingUser, setEditingUser] = useState<UserRole | null>(null);
-  const [deletingUser, setDeletingUser] = useState<UserRole | null>(null);
-
-  const [assignForm, setAssignForm] = useState<{
-    role: Role;
-    permissions: typeof defaultPermissions;
-  }>({
-    role: "employee",
-    permissions: rolePermissionTemplates.employee,
-  });
-
   useEffect(() => {
     loadUsers();
     loadProfiles();
   }, []);
 
+  /* ---------------- LOAD USERS ---------------- */
   const loadUsers = async () => {
     setLoading(true);
+
     const { data } = await supabase
       .from("user_roles")
       .select("*, profiles(email, username, employee_id)");
@@ -136,57 +80,17 @@ export default function UserRoleManagement() {
         }))
       );
     }
+
     setLoading(false);
   };
 
+  /* ---------------- LOAD PROFILES ---------------- */
   const loadProfiles = async () => {
     const { data } = await supabase.from("profiles").select("*");
     setProfiles(data || []);
   };
 
-  const usersWithoutRoles = profiles.filter(
-    (p) => !users.some((u) => u.user_id === p.id)
-  );
-
-  const assignRole = async () => {
-    if (!selectedUserId) return;
-
-    await supabase.from("user_roles").insert({
-      user_id: selectedUserId,
-      role: assignForm.role,
-      permissions: assignForm.permissions,
-      is_active: true,
-    });
-
-    loadUsers();
-    setAssignModal(false);
-    setSelectedUserId("");
-  };
-
-  const saveUser = async () => {
-    if (!editingUser) return;
-
-    await supabase
-      .from("user_roles")
-      .update({
-        role: editingUser.role,
-        permissions: editingUser.permissions,
-        is_active: editingUser.is_active,
-      })
-      .eq("id", editingUser.id);
-
-    loadUsers();
-    setEditModal(false);
-  };
-
-  const deleteUser = async () => {
-    if (!deletingUser) return;
-
-    await supabase.from("user_roles").delete().eq("id", deletingUser.id);
-    loadUsers();
-    setDeleteModal(false);
-  };
-
+  /* ---------------- FILTER ---------------- */
   const filteredUsers = users.filter((u) => {
     const s = searchTerm.toLowerCase();
     const match =
@@ -205,7 +109,7 @@ export default function UserRoleManagement() {
           <TouchableOpacity onPress={() => router.back()}>
             <Feather name="arrow-left" size={22} color={COLORS.primary} />
           </TouchableOpacity>
-          <Text style={styles.title}>User Role Management</Text>
+          <Text style={styles.title}>User Roles</Text>
         </View>
 
         {/* SEARCH + FILTER */}
@@ -229,14 +133,7 @@ export default function UserRoleManagement() {
           </Picker>
         </View>
 
-        {/* ASSIGN */}
-        <TouchableOpacity style={styles.button} onPress={() => setAssignModal(true)}>
-          <Text style={styles.buttonText}>
-            Assign Role ({usersWithoutRoles.length})
-          </Text>
-        </TouchableOpacity>
-
-        {/* LIST */}
+        {/* USER LIST */}
         {loading ? (
           <ActivityIndicator size="large" color={COLORS.accent} />
         ) : (
@@ -247,35 +144,11 @@ export default function UserRoleManagement() {
               <View style={styles.card}>
                 <Text style={styles.cardTitle}>{item.username}</Text>
                 <Text style={styles.cardSub}>{item.email}</Text>
-
                 <Text style={styles.badge}>{item.role.toUpperCase()}</Text>
-
-                <View style={styles.actionsRow}>
-                  <TouchableOpacity
-                    onPress={() => {
-                      setEditingUser(item);
-                      setEditModal(true);
-                    }}
-                  >
-                    <Text style={styles.editText}>Edit</Text>
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    onPress={() => {
-                      setDeletingUser(item);
-                      setDeleteModal(true);
-                    }}
-                  >
-                    <Text style={styles.deleteText}>Delete</Text>
-                  </TouchableOpacity>
-                </View>
               </View>
             )}
           />
         )}
-
-        {/* -------- MODALS (unchanged logic) -------- */}
-        {/* Assign / Edit / Delete modals remain exactly the same */}
       </View>
     </SafeAreaView>
   );
@@ -320,21 +193,8 @@ const styles = StyleSheet.create({
   },
 
   picker: {
-    width: 130,
+    width: 140,
     backgroundColor: "#F1F5F9",
-  },
-
-  button: {
-    backgroundColor: COLORS.primary,
-    paddingVertical: 12,
-    borderRadius: 8,
-    marginTop: 15,
-  },
-
-  buttonText: {
-    color: "#fff",
-    fontWeight: "700",
-    textAlign: "center",
   },
 
   card: {
@@ -363,22 +223,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     alignSelf: "flex-start",
     borderRadius: 6,
-    fontWeight: "600",
-  },
-
-  actionsRow: {
-    flexDirection: "row",
-    marginTop: 10,
-    gap: 20,
-  },
-
-  editText: {
-    color: COLORS.primary,
-    fontWeight: "600",
-  },
-
-  deleteText: {
-    color: COLORS.accent,
     fontWeight: "600",
   },
 });
