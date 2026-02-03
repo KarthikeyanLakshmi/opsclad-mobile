@@ -104,10 +104,9 @@ export default function LeaveReport() {
   return (
     <ScrollView style={styles.container}>
       {/* HEADER */}
-      <View style={styles.row}>
-        <Text style={styles.title}>Leave Report</Text>
+      <View style={styles.header}>
+        <Text style={styles.headerTitle}>Leave Report</Text>
       </View>
-
       {/* TABS */}
       <View style={styles.tabs}>
         <TouchableOpacity
@@ -195,8 +194,6 @@ export default function LeaveReport() {
               }}
             />
           )}
-
-          <Text style={styles.sectionTitle}>Leave Records</Text>
 
           {loading ? (
           <ActivityIndicator size="large" color={COLORS.primary} />
@@ -402,6 +399,20 @@ const styles = StyleSheet.create({
 
   btnText: {
     color: "#ffffff",
+    fontWeight: "700",
+  },
+    /* ---------------- HEADER ---------------- */
+  header: {
+    padding: 20,
+    alignItems: "center",
+    backgroundColor: "#ffffff",
+    borderBottomWidth: 1,
+    borderBottomColor: "#e5e7eb",
+  },
+
+  headerTitle: {
+    color: "#1b2a41", // primary
+    fontSize: 20,
     fontWeight: "700",
   },
 });

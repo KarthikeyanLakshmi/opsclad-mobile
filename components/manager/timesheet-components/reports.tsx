@@ -315,8 +315,6 @@ export default function ReportsScreen() {
           }, {})
         ).map(([month, items]: [string, any[]]) => (
           <View key={month} style={{ marginBottom: 16 }}>
-            <Text style={styles.monthHeader}>{month}</Text>
-
             {items.map((d: any, index: number) => (
               <View
                 key={index}
