@@ -11,6 +11,9 @@ import {
 } from "react-native";
 import { supabase } from "../../src/lib/supabase";
 
+import { LinearGradient } from "expo-linear-gradient";
+import MaskedView from "@react-native-masked-view/masked-view";
+
 /* =========================
    THEME COLORS
 ========================= */
@@ -32,6 +35,47 @@ export default function TabsLayout() {
 
   const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+
+  function GradientTabIcon({
+    name,
+    size,
+    focused,
+  }: {
+    name: keyof typeof Ionicons.glyphMap;
+    size: number;
+    focused: boolean;
+  }) {
+    if (!focused) {
+      // Inactive = normal grey icon
+      return <Ionicons name={name} size={size} color="#8e8e8e" />;
+    }
+
+    return (
+      <MaskedView
+        maskElement={
+          <View
+            style={{
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <Ionicons name={name} size={size} color="black" />
+          </View>
+        }
+      >
+        <LinearGradient
+          colors={[COLORS.primary, COLORS.accent]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={{
+            width: size,
+            height: size,
+          }}
+        />
+      </MaskedView>
+    );
+  }
+
 
   /* -------------------------
      LOAD PROFILE
@@ -234,8 +278,12 @@ export default function TabsLayout() {
           name="home"
           options={{
             tabBarLabel: "",
-            tabBarIcon: ({ color }) => (
-              <Ionicons name="home-outline" size={28} color={color} />
+            tabBarIcon: ({ focused }) => (
+              <GradientTabIcon
+                name="home-outline"
+                size={28}
+                focused={focused}
+              />
             ),
           }}
         />
@@ -244,8 +292,12 @@ export default function TabsLayout() {
           name="task"
           options={{
             tabBarLabel: "",
-            tabBarIcon: ({ color }) => (
-              <Ionicons name="list-outline" size={28} color={color} />
+            tabBarIcon: ({ focused }) => (
+              <GradientTabIcon
+                name="list-outline"
+                size={28}
+                focused={focused}
+              />
             ),
           }}
         />
@@ -254,8 +306,12 @@ export default function TabsLayout() {
           name="timesheet"
           options={{
             tabBarLabel: "",
-            tabBarIcon: ({ color }) => (
-              <Ionicons name="document-text-outline" size={28} color={color} />
+            tabBarIcon: ({ focused }) => (
+              <GradientTabIcon
+                name="document-text-outline"
+                size={28}
+                focused={focused}
+              />
             ),
           }}
         />
@@ -264,8 +320,12 @@ export default function TabsLayout() {
           name="leave"
           options={{
             tabBarLabel: "",
-            tabBarIcon: ({ color }) => (
-              <Ionicons name="calendar-outline" size={28} color={color} />
+            tabBarIcon: ({ focused }) => (
+              <GradientTabIcon
+                name="calendar-outline"
+                size={28}
+                focused={focused}
+              />
             ),
           }}
         />
