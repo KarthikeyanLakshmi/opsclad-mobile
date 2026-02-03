@@ -436,6 +436,7 @@ const resetLeaveForm = () => {
                   activeTab === "overview" && styles.tabTextActive,
                 ]}
               >
+                
                 Leave Overview
               </Text>
             </TouchableOpacity>
