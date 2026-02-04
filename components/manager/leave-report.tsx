@@ -114,11 +114,7 @@ export default function LeaveReport() {
           onPress={() => setActiveTab("overview")}
         >
           <Text
-            style={
-              activeTab === "overview"
-                ? styles.activeTabText
-                : styles.tabText
-            }
+            style={activeTab === "overview" ? styles.activeTabText : styles.tabText}
           >
             Overview
           </Text>
@@ -129,16 +125,13 @@ export default function LeaveReport() {
           onPress={() => setActiveTab("approvals")}
         >
           <Text
-            style={
-              activeTab === "approvals"
-                ? styles.activeTabText
-                : styles.tabText
-            }
+            style={activeTab === "approvals" ? styles.activeTabText : styles.tabText}
           >
             Approvals
           </Text>
         </TouchableOpacity>
       </View>
+
 
       {/* ---------------- OVERVIEW TAB ---------------- */}
       {activeTab === "overview" && (
@@ -269,7 +262,6 @@ const styles = StyleSheet.create({
   container: {
     backgroundColor: "#f6f6f6",
     padding: 12,
-    paddingTop: 60,
   },
 
   title: {
@@ -400,18 +392,17 @@ const styles = StyleSheet.create({
   btnText: {
     color: "#ffffff",
     fontWeight: "700",
-  },
-    /* ---------------- HEADER ---------------- */
+  },/* ---------------- HEADER ---------------- */
   header: {
     padding: 20,
     alignItems: "center",
-    backgroundColor: "#ffffff",
+    backgroundColor: COLORS.card,
     borderBottomWidth: 1,
-    borderBottomColor: "#e5e7eb",
+    borderBottomColor: COLORS.border,
   },
 
   headerTitle: {
-    color: "#1b2a41", // primary
+    color: COLORS.primary,
     fontSize: 20,
     fontWeight: "700",
   },
